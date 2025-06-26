@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema de Crediário</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #dc2626, #ef4444, #f87171);
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .login-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-subtitle {
+            color: #6b7280;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f9fafb;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #dc2626;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3);
+        }
+
+        .login-btn:hover::before {
+            left: 100%;
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .system-info {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        .system-info h3 {
+            color: #374151;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            text-align: left;
+        }
+
+        .info-item {
+            background: #f9fafb;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border-left: 3px solid #dc2626;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .info-value {
+            color: #1f2937;
+            font-weight: 500;
+        }
+
+        .features {
+            margin-top: 1.5rem;
+            text-align: left;
+        }
+
+        .features h4 {
+            color: #374151;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 0.25rem 0;
+            color: #6b7280;
+            font-size: 0.85rem;
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .feature-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .password-toggle {
+            position: relative;
+        }
+
+        .password-toggle button {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .password-toggle button:hover {
+            color: #dc2626;
+            background: #f3f4f6;
+        }
+
+        /* Animações */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-container {
+            animation: fadeInUp 0.6s ease;
+        }
+
+        /* Responsivo */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 2rem 1.5rem;
+                margin: 1rem;
+            }
+
+            .login-title {
+                font-size: 1.5rem;
+            }
+
+            .logo {
+                font-size: 2.5rem;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading state */
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .loading .login-btn {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <!-- Logo e Título -->
+        <div class="logo">🥩</div>
+        <h1 class="login-title">Sistema de Crediário</h1>
+        <p class="login-subtitle">Açougue - Gestão Completa</p>
+
+        <!-- Mensagens Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'error' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Formulário de Login -->
+        <form method="POST" id="loginForm">
+            <div class="form-group">
+                <label for="senha">Senha do Sistema:</label>
+                <div class="password-toggle">
+                    <input type="password" 
+                           id="senha" 
+                           name="senha" 
+                           required 
+                           autofocus
+                           placeholder="Digite a senha do sistema">
+                    <button type="button" onclick="togglePassword()" title="Mostrar/Esconder senha">
+                        👁️
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="login-btn" id="loginBtn">
+                <span id="btnText">Entrar no Sistema</span>
+            </button>
+        </form>
+
+        <!-- Informações do Sistema -->
+        <div class="system-info">
+            <h3>📊 Informações do Sistema</h3>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Versão</div>
+                    <div class="info-value">1.0.0</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Tipo</div>
+                    <div class="info-value">Local</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Ambiente</div>
+                    <div class="info-value">Produção</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Banco</div>
+                    <div class="info-value">MySQL</div>
+                </div>
+            </div>
+
+            <div class="features">
+                <h4>🚀 Funcionalidades Disponíveis:</h4>
+                <ul class="feature-list">
+                    <li>Gestão completa de clientes</li>
+                    <li>Controle de vendas e crediário</li>
+                    <li>Processamento de pagamentos</li>
+                    <li>Impressão de comprovantes</li>
+                    <li>Relatórios e análises</li>
+                    <li>Alertas de inadimplência</li>
+                    <li>Backup automático</li>
+                    <li>Interface responsiva</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configurações da página de login
+        let isSubmitting = false;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setupLoginForm();
+            setupKeyboardShortcuts();
+        });
+
+        function setupLoginForm() {
+            const form = document.getElementById('loginForm');
+            const senhaInput = document.getElementById('senha');
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (isSubmitting) return;
+                
+                const senha = senhaInput.value.trim();
+                
+                if (!senha) {
+                    showAlert('Por favor, digite a senha do sistema.', 'error');
+                    senhaInput.focus();
+                    return;
+                }
+                
+                submitLogin(senha);
+            });
+            
+            // Auto-focus no campo de senha
+            senhaInput.focus();
+        }
+
+        function submitLogin(senha) {
+            isSubmitting = true;
+            const container = document.querySelector('.login-container');
+            const btn = document.getElementById('loginBtn');
+            const btnText = document.getElementById('btnText');
+            
+            // Mostrar loading
+            container.classList.add('loading');
+            btnText.innerHTML = '<span class="spinner"></span>Entrando...';
+            
+            // Criar FormData e enviar
+            const formData = new FormData();
+            formData.append('senha', senha);
+            
+            fetch('/login', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.redirected) {
+                    // Login bem-sucedido, redirecionar
+                    showAlert('Login realizado com sucesso! Redirecionando...', 'success');
+                    setTimeout(() => {
+                        window.location.href = response.url;
+                    }, 1000);
+                } else {
+                    // Login falhou, recarregar página para mostrar erro
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Erro no login:', error);
+                showAlert('Erro de conexão. Tente novamente.', 'error');
+                resetLoginForm();
+            });
+        }
+
+        function resetLoginForm() {
+            isSubmitting = false;
+            const container = document.querySelector('.login-container');
+            const btnText = document.getElementById('btnText');
+            
+            container.classList.remove('loading');
+            btnText.textContent = 'Entrar no Sistema';
+            
+            document.getElementById('senha').focus();
+        }
+
+        function togglePassword() {
+            const senhaInput = document.getElementById('senha');
+            const type = senhaInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            senhaInput.setAttribute('type', type);
+        }
+
+        function showAlert(message, type) {
+            // Remove alertas existentes
+            const existingAlerts = document.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+            
+            // Criar novo alerta
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            
+            // Inserir antes do formulário
+            const form = document.getElementById('loginForm');
+            form.parentNode.insertBefore(alert, form);
+            
+            // Auto-remover após 5 segundos
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', function(e) {
+                // Enter para submeter
+                if (e.key === 'Enter' && !isSubmitting) {
+                    const form = document.getElementById('loginForm');
+                    form.dispatchEvent(new Event('submit'));
+                }
+                
+                // Ctrl+L para focar no campo de senha
+                if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+                    e.preventDefault();
+                    document.getElementById('senha').focus();
+                }
+            });
+        }
+
+        // Prevenir ataques de força bruta simples
+        let attemptCount = 0;
+        const maxAttempts = 5;
+        const lockoutTime = 5 * 60 * 1000; // 5 minutos
+
+        function checkAttempts() {
+            const lastAttempt = localStorage.getItem('lastLoginAttempt');
+            const attempts = parseInt(localStorage.getItem('loginAttempts') || '0');
+            
+            if (attempts >= maxAttempts) {
+                const timePassed = Date.now() - parseInt(lastAttempt || '0');
+                if (timePassed < lockoutTime) {
+                    const remainingTime = Math.ceil((lockoutTime - timePassed) / 1000 / 60);
+                    showAlert(`Muitas tentativas. Tente novamente em ${remainingTime} minutos.`, 'error');
+                    return false;
+                } else {
+                    // Reset attempts
+                    localStorage.removeItem('loginAttempts');
+                    localStorage.removeItem('lastLoginAttempt');
+                }
+            }
+            
+            return true;
+        }
+
+        function recordAttempt() {
+            const attempts = parseInt(localStorage.getItem('loginAttempts') || '0') + 1;
+            localStorage.setItem('loginAttempts', attempts.toString());
+            localStorage.setItem('lastLoginAttempt', Date.now().toString());
+        }
+
+        // Verificar ao carregar
+        window.addEventListener('load', function() {
+            if (!checkAttempts()) {
+                document.getElementById('loginForm').style.display = 'none';
+            }
+        });
+
+        // Adicionar efeitos visuais
+        function addVisualEffects() {
+            // Partículas de fundo (opcional)
+            const container = document.querySelector('.login-container');
+            
+            container.addEventListener('mousemove', function(e) {
+                const rect = container.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                container.style.setProperty('--mouse-x', x + 'px');
+                container.style.setProperty('--mouse-y', y + 'px');
+            });
+        }
+
+        // Inicializar efeitos
+        addVisualEffects();
+
+        console.log('Login page loaded successfully!');
+    </script>
+</body>
+</html>

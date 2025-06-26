@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.nome_empresa }} - Sistema de Crediário</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="nav-container">
+            <a href="{{ url_for('dashboard') }}" class="logo">🥩 {{ config.nome_empresa }}</a>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="{{ url_for('dashboard') }}" class="active">Dashboard</a></li>
+                    <li class="nav-item"><a href="{{ url_for('clientes') }}">Clientes</a></li>
+                    <li class="nav-item"><a href="{{ url_for('vendas') }}">Vendas</a></li>
+                    <li class="nav-item"><a href="{{ url_for('pagamentos') }}">Pagamentos</a></li>
+                    <li class="nav-item"><a href="{{ url_for('relatorios') }}">Relatórios</a></li>
+                    <li class="nav-item"><a href="{{ url_for('logout') }}" class="logout">Sair</a></li>
+                </ul>
+            </nav>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+        </div>
+    </header>
+
+    <!-- Container Principal -->
+    <div class="main-container">
+        <!-- Mensagens Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Busca Principal -->
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" class="search-input" placeholder="Buscar clientes, vendas ou produtos..." 
+                       id="searchGlobal" onkeyup="buscarGlobal(this.value)">
+                <button class="search-btn" onclick="executarBusca()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="searchResults" class="search-results" style="display: none;"></div>
+        </div>
+
+        <!-- Cards do Dashboard -->
+        <div class="dashboard-cards">
+            <div class="card" onclick="navegarPara('clientes')">
+                <div class="card-icon">👥</div>
+                <div class="card-title">Clientes</div>
+                <div class="card-description">Gerenciar cadastro de clientes</div>
+                <div class="card-number">{{ stats.total_clientes or 0 }}</div>
+            </div>
+
+            <div class="card" onclick="navegarPara('vendas')">
+                <div class="card-icon">🛒</div>
+                <div class="card-title">Vendas do Mês</div>
+                <div class="card-description">{{ stats.vendas_mes.total or 0 }} vendas realizadas</div>
+                <div class="card-number">{{ stats.vendas_mes.valor_total_formatado or 'R$ 0,00' }}</div>
+            </div>
+
+            <div class="card vendas-abertas" onclick="navegarPara('pagamentos')">
+                <div class="card-icon">💰</div>
+                <div class="card-title">Vendas em Aberto</div>
+                <div class="card-description">{{ stats.vendas_abertas.total or 0 }} vendas pendentes</div>
+                <div class="card-number">{{ stats.vendas_abertas.valor_total_formatado or 'R$ 0,00' }}</div>
+            </div>
+
+            <div class="card vendas-vencidas" onclick="mostrarVendasVencidas()">
+                <div class="card-icon">⚠️</div>
+                <div class="card-title">Vendas Vencidas</div>
+                <div class="card-description">{{ stats.vendas_vencidas.total or 0 }} vendas atrasadas</div>
+                <div class="card-number">{{ stats.vendas_vencidas.valor_total_formatado or 'R$ 0,00' }}</div>
+            </div>
+        </div>
+
+        <!-- Seção de Alertas -->
+        {% if alertas %}
+        <div class="alerts-section">
+            <h2 class="section-title">⚠️ Alertas Importantes</h2>
+            
+            {% for alerta in alertas %}
+            <div class="alert alert-{{ alerta.urgencia }}">
+                <div class="alert-title">{{ alerta.titulo }}</div>
+                <div class="alert-text">{{ alerta.descricao }}</div>
+                {% if alerta.tipo == 'vendas_vencidas' %}
+                    <button class="alert-action" onclick="mostrarDetalhesVendasVencidas()">Ver Detalhes</button>
+                {% elif alerta.tipo == 'limite_credito' %}
+                    <button class="alert-action" onclick="mostrarClientesLimite()">Ver Clientes</button>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Seção de Gráficos -->
+        <div class="charts-section">
+            <h2 class="section-title">📊 Análises dos Últimos 30 Dias</h2>
+            
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Vendas por Dia</h3>
+                    <canvas id="vendasPorDiaChart"></canvas>
+                </div>
+                
+                <div class="chart-card">
+                    <h3>Formas de Pagamento</h3>
+                    <canvas id="formasPagamentoChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ações Rápidas -->
+        <div class="quick-actions">
+            <h2 class="section-title">⚡ Ações Rápidas</h2>
+            
+            <div class="quick-actions-grid">
+                <button class="quick-action-btn" onclick="novaVenda()">
+                    <span class="quick-action-icon">🛒</span>
+                    <span>Nova Venda</span>
+                </button>
+                
+                <button class="quick-action-btn" onclick="novoCliente()">
+                    <span class="quick-action-icon">👤</span>
+                    <span>Novo Cliente</span>
+                </button>
+                
+                <button class="quick-action-btn" onclick="processarPagamento()">
+                    <span class="quick-action-icon">💳</span>
+                    <span>Processar Pagamento</span>
+                </button>
+                
+                <button class="quick-action-btn" onclick="testarImpressora()">
+                    <span class="quick-action-icon">🖨️</span>
+                    <span>Testar Impressora</span>
+                </button>
+                
+                <button class="quick-action-btn" onclick="exportarRelatorio()">
+                    <span class="quick-action-icon">📄</span>
+                    <span>Exportar Relatório</span>
+                </button>
+                
+                <button class="quick-action-btn" onclick="criarBackup()">
+                    <span class="quick-action-icon">💾</span>
+                    <span>Criar Backup</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botões Flutuantes -->
+    <div class="floating-actions">
+        <button class="fab" title="Nova Venda" onclick="novaVenda()">+</button>
+        <button class="fab fab-secondary" title="Novo Cliente" onclick="novoCliente()">👤</button>
+    </div>
+
+    <!-- Modais -->
+    
+    <!-- Modal Nova Venda -->
+    <div id="modalNovaVenda" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nova Venda</h3>
+                <button class="modal-close" onclick="fecharModal('modalNovaVenda')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formNovaVenda">
+                    <div class="form-group">
+                        <label>Cliente:</label>
+                        <select id="clienteVenda" name="cliente_id" required>
+                            <option value="">Selecione um cliente...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Itens da Venda:</label>
+                        <div id="itensVenda">
+                            <div class="item-venda">
+                                <input type="text" placeholder="Descrição do item" name="descricao[]" required>
+                                <input type="number" placeholder="Qtd" name="quantidade[]" step="0.001" min="0.001" required>
+                                <input type="number" placeholder="Valor Unit." name="valor_unitario[]" step="0.01" min="0.01" required>
+                                <span class="subtotal">R$ 0,00</span>
+                                <button type="button" onclick="removerItem(this)">🗑️</button>
+                            </div>
+                        </div>
+                        <button type="button" onclick="adicionarItem()" class="btn-add-item">+ Adicionar Item</button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Observações:</label>
+                        <textarea name="observacoes" rows="3" placeholder="Observações sobre a venda..."></textarea>
+                    </div>
+                    
+                    <div class="total-venda">
+                        <strong>Total: <span id="totalVenda">R$ 0,00</span></strong>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="fecharModal('modalNovaVenda')" class="btn btn-secondary">Cancelar</button>
+                <button type="button" onclick="salvarVenda()" class="btn btn-primary">Salvar Venda</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Novo Cliente -->
+    <div id="modalNovoCliente" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Novo Cliente</h3>
+                <button class="modal-close" onclick="fecharModal('modalNovoCliente')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formNovoCliente">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nome Completo *:</label>
+                            <input type="text" name="nome" required>
+                        </div>
+                        <div class="form-group">
+                            <label>CPF:</label>
+                            <input type="text" name="cpf" placeholder="000.000.000-00">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Telefone *:</label>
+                            <input type="text" name="telefone" required placeholder="(00) 00000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label>Limite de Crédito:</label>
+                            <input type="number" name="limite_credito" step="0.01" value="500.00">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Endereço:</label>
+                        <textarea name="endereco" rows="2" placeholder="Endereço completo..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Observações:</label>
+                        <textarea name="observacoes" rows="3" placeholder="Observações sobre o cliente..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="fecharModal('modalNovoCliente')" class="btn btn-secondary">Cancelar</button>
+                <button type="button" onclick="salvarCliente()" class="btn btn-primary">Salvar Cliente</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Carregando...</div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            inicializarDashboard();
+            carregarClientes();
+            criarGraficos();
+        });
+
+        // Funções específicas do dashboard
+        function inicializarDashboard() {
+            // Atualizar alertas a cada 5 minutos
+            setInterval(atualizarAlertas, 5 * 60 * 1000);
+            
+            // Calcular totais em tempo real nos formulários
+            configurarCalculoTotais();
+        }
+
+        function criarGraficos() {
+            {% if graficos %}
+            // Gráfico de vendas por dia
+            const ctxVendas = document.getElementById('vendasPorDiaChart').getContext('2d');
+            new Chart(ctxVendas, {
+                type: 'line',
+                data: {
+                    labels: {{ graficos.vendas_por_dia.labels | tojsonhtml }},
+                    datasets: [{
+                        label: 'Valor das Vendas',
+                        data: {{ graficos.vendas_por_dia.valores | tojsonhtml }},
+                        borderColor: '#dc2626',
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Vendas por Dia (Últimos 30 dias)'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R$ ' + value.toLocaleString('pt-BR');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de formas de pagamento
+            const ctxPagamento = document.getElementById('formasPagamentoChart').getContext('2d');
+            new Chart(ctxPagamento, {
+                type: 'doughnut',
+                data: {
+                    labels: {{ graficos.formas_pagamento.labels | tojsonhtml }},
+                    datasets: [{
+                        data: {{ graficos.formas_pagamento.valores | tojsonhtml }},
+                        backgroundColor: [
+                            '#dc2626',
+                            '#ef4444',
+                            '#f87171'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Formas de Pagamento'
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            {% endif %}
+        }
+
+        function configurarCalculoTotais() {
+            // Configurar cálculo automático de totais na venda
+            document.addEventListener('input', function(e) {
+                if (e.target.matches('#itensVenda input[name*="quantidade"], #itensVenda input[name*="valor_unitario"]')) {
+                    calcularTotalVenda();
+                }
+            });
+        }
+
+        function atualizarAlertas() {
+            fetch('/api/alertas')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.sucesso && data.alertas && data.alertas.length > 0) {
+                        // Mostrar notificação se houver novos alertas
+                        mostrarNotificacao('Novos alertas disponíveis!', 'warning');
+                    }
+                })
+                .catch(error => console.error('Erro ao atualizar alertas:', error));
+        }
+
+        // Funções dos botões de ação rápida
+        function testarImpressora() {
+            mostrarLoading('Testando impressora...');
+            
+            fetch('/api/impressao/teste')
+                .then(response => response.json())
+                .then(data => {
+                    esconderLoading();
+                    if (data.sucesso) {
+                        mostrarNotificacao(data.mensagem, 'success');
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao testar impressora', 'error');
+                    }
+                })
+                .catch(error => {
+                    esconderLoading();
+                    mostrarNotificacao('Erro ao testar impressora', 'error');
+                });
+        }
+
+        function criarBackup() {
+            mostrarLoading('Criando backup...');
+            
+            fetch('/api/backup/criar')
+                .then(response => response.json())
+                .then(data => {
+                    esconderLoading();
+                    if (data.sucesso) {
+                        mostrarNotificacao(data.mensagem, 'success');
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao criar backup', 'error');
+                    }
+                })
+                .catch(error => {
+                    esconderLoading();
+                    mostrarNotificacao('Erro ao criar backup', 'error');
+                });
+        }
+
+        function exportarRelatorio() {
+            // Exportar relatório de vendas do mês atual
+            const dataInicio = new Date();
+            dataInicio.setDate(1);
+            const dataFim = new Date();
+            
+            const params = new URLSearchParams({
+                data_inicio: dataInicio.toISOString().split('T')[0],
+                data_fim: dataFim.toISOString().split('T')[0],
+                formato: 'excel'
+            });
+            
+            window.open(`/api/relatorios/vendas/exportar?${params}`, '_blank');
+        }
+
+        function mostrarVendasVencidas() {
+            navegarPara('vendas?status=vencida');
+        }
+    </script>
+</body>
+</html>

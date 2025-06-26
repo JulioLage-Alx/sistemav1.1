@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes - {{ config.nome_empresa }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="nav-container">
+            <a href="{{ url_for('dashboard') }}" class="logo">🥩 {{ config.nome_empresa }}</a>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="nav-item"><a href="{{ url_for('clientes') }}" class="active">Clientes</a></li>
+                    <li class="nav-item"><a href="{{ url_for('vendas') }}">Vendas</a></li>
+                    <li class="nav-item"><a href="{{ url_for('pagamentos') }}">Pagamentos</a></li>
+                    <li class="nav-item"><a href="{{ url_for('relatorios') }}">Relatórios</a></li>
+                    <li class="nav-item"><a href="{{ url_for('logout') }}" class="logout">Sair</a></li>
+                </ul>
+            </nav>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+        </div>
+    </header>
+
+    <!-- Container Principal -->
+    <div class="main-container">
+        <!-- Cabeçalho da Página -->
+        <div class="page-header">
+            <h1>👥 Gestão de Clientes</h1>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="abrirModalNovoCliente()">
+                    <span>➕</span> Novo Cliente
+                </button>
+            </div>
+        </div>
+
+        <!-- Filtros e Busca -->
+        <div class="filters-section">
+            <div class="search-bar">
+                <input type="text" id="filtroClientes" placeholder="Buscar por nome, CPF ou telefone..." 
+                       onkeyup="filtrarClientes()" class="search-input">
+                <button onclick="filtrarClientes()" class="search-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="filter-options">
+                <select id="filtroTipo" onchange="filtrarClientes()">
+                    <option value="">Todos os clientes</option>
+                    <option value="com_saldo">Com saldo devedor</option>
+                    <option value="limite_proximo">Próximo do limite</option>
+                    <option value="inadimplente">Inadimplentes</option>
+                </select>
+
+                <select id="filtroOrdem" onchange="filtrarClientes()">
+                    <option value="nome">Ordenar por Nome</option>
+                    <option value="saldo_desc">Maior Saldo Devedor</option>
+                    <option value="cadastro_desc">Mais Recentes</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Lista de Clientes -->
+        <div class="content-section">
+            <div id="listaClientes" class="clientes-grid">
+                <!-- Carregado via JavaScript -->
+            </div>
+
+            <div id="loadingClientes" class="loading-section" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Carregando clientes...</p>
+            </div>
+
+            <div id="nenhumCliente" class="empty-state" style="display: none;">
+                <div class="empty-icon">👥</div>
+                <h3>Nenhum cliente encontrado</h3>
+                <p>Cadastre o primeiro cliente ou refine sua busca.</p>
+                <button class="btn btn-primary" onclick="abrirModalNovoCliente()">Cadastrar Cliente</button>
+            </div>
+        </div>
+
+        <!-- Paginação -->
+        <div class="pagination-section" id="paginacaoClientes" style="display: none;">
+            <button id="btnAnterior" onclick="paginaAnterior()" class="btn btn-secondary">← Anterior</button>
+            <span id="infoPaginacao" class="pagination-info">Página 1 de 1</span>
+            <button id="btnProximo" onclick="proximaPagina()" class="btn btn-secondary">Próximo →</button>
+        </div>
+    </div>
+
+    <!-- Modal Novo/Editar Cliente -->
+    <div id="modalCliente" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="tituloModalCliente">Novo Cliente</h3>
+                <button class="modal-close" onclick="fecharModalCliente()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formCliente">
+                    <input type="hidden" id="clienteId" name="id">
+                    
+                    <div class="form-row">
+                        <div class="form-group flex-2">
+                            <label>Nome Completo *:</label>
+                            <input type="text" id="clienteNome" name="nome" required>
+                        </div>
+                        <div class="form-group">
+                            <label>CPF:</label>
+                            <input type="text" id="clienteCpf" name="cpf" placeholder="000.000.000-00">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Telefone *:</label>
+                            <input type="text" id="clienteTelefone" name="telefone" required placeholder="(00) 00000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label>Limite de Crédito:</label>
+                            <div class="input-group">
+                                <span class="input-prefix">R$</span>
+                                <input type="number" id="clienteLimite" name="limite_credito" step="0.01" value="500.00">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Endereço:</label>
+                        <textarea id="clienteEndereco" name="endereco" rows="2" placeholder="Endereço completo..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Observações:</label>
+                        <textarea id="clienteObservacoes" name="observacoes" rows="3" placeholder="Observações sobre o cliente..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="fecharModalCliente()" class="btn btn-secondary">Cancelar</button>
+                <button type="button" onclick="salvarCliente()" class="btn btn-primary">
+                    <span id="btnSalvarTexto">Salvar Cliente</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Perfil do Cliente -->
+    <div id="modalPerfilCliente" class="modal">
+        <div class="modal-content modal-extra-large">
+            <div class="modal-header">
+                <h3 id="tituloPerfilCliente">Perfil do Cliente</h3>
+                <button class="modal-close" onclick="fecharModalPerfil()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="perfil-cliente">
+                    <!-- Dados do Cliente -->
+                    <div class="perfil-section">
+                        <h4>📋 Dados do Cliente</h4>
+                        <div class="perfil-info" id="dadosCliente">
+                            <!-- Carregado via JavaScript -->
+                        </div>
+                        <div class="perfil-actions">
+                            <button class="btn btn-secondary" onclick="editarClientePerfil()">✏️ Editar</button>
+                            <button class="btn btn-danger" onclick="excluirClientePerfil()">🗑️ Excluir</button>
+                        </div>
+                    </div>
+
+                    <!-- Estatísticas -->
+                    <div class="perfil-section">
+                        <h4>📊 Estatísticas</h4>
+                        <div class="stats-grid" id="estatisticasCliente">
+                            <!-- Carregado via JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Histórico de Vendas -->
+                    <div class="perfil-section">
+                        <h4>🛒 Histórico de Vendas</h4>
+                        <div class="vendas-actions">
+                            <button class="btn btn-primary" onclick="novaVendaCliente()">➕ Nova Venda</button>
+                            <button class="btn btn-success" onclick="processarPagamentoCliente()">💰 Processar Pagamento</button>
+                        </div>
+                        <div class="vendas-lista" id="historicoVendas">
+                            <!-- Carregado via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmação Exclusão -->
+    <div id="modalConfirmacao" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3>⚠️ Confirmar Exclusão</h3>
+                <button class="modal-close" onclick="fecharModalConfirmacao()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="textoConfirmacao">Tem certeza que deseja excluir este cliente?</p>
+                <p class="warning-text">Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="fecharModalConfirmacao()" class="btn btn-secondary">Cancelar</button>
+                <button type="button" onclick="confirmarExclusao()" class="btn btn-danger">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Carregando...</div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        let clientes = [];
+        let clientesFiltrados = [];
+        let paginaAtual = 1;
+        let itensPorPagina = 12;
+        let clienteParaExcluir = null;
+        let clienteAtual = null;
+
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarClientes();
+            configurarMascaras();
+        });
+
+        // Carregar lista de clientes
+        function carregarClientes() {
+            mostrarLoadingClientes();
+            
+            fetch('/api/clientes')
+                .then(response => response.json())
+                .then(data => {
+                    esconderLoadingClientes();
+                    
+                    if (data.sucesso) {
+                        clientes = data.clientes;
+                        clientesFiltrados = [...clientes];
+                        renderizarClientes();
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao carregar clientes', 'error');
+                        mostrarEstadoVazio();
+                    }
+                })
+                .catch(error => {
+                    esconderLoadingClientes();
+                    console.error('Erro:', error);
+                    mostrarNotificacao('Erro ao carregar clientes', 'error');
+                    mostrarEstadoVazio();
+                });
+        }
+
+        // Renderizar lista de clientes
+        function renderizarClientes() {
+            const container = document.getElementById('listaClientes');
+            
+            if (clientesFiltrados.length === 0) {
+                mostrarEstadoVazio();
+                return;
+            }
+
+            // Calcular paginação
+            const totalPaginas = Math.ceil(clientesFiltrados.length / itensPorPagina);
+            const inicio = (paginaAtual - 1) * itensPorPagina;
+            const fim = inicio + itensPorPagina;
+            const clientesPagina = clientesFiltrados.slice(inicio, fim);
+
+            // Gerar HTML dos clientes
+            const html = clientesPagina.map(cliente => `
+                <div class="cliente-card" onclick="abrirPerfilCliente(${cliente.id})">
+                    <div class="cliente-header">
+                        <h3 class="cliente-nome">${cliente.nome}</h3>
+                        <div class="cliente-status ${getStatusCliente(cliente)}">
+                            ${getTextStatus(cliente)}
+                        </div>
+                    </div>
+                    
+                    <div class="cliente-info">
+                        <div class="info-item">
+                            <span class="info-label">CPF:</span>
+                            <span class="info-value">${cliente.cpf_formatado || 'Não informado'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Telefone:</span>
+                            <span class="info-value">${cliente.telefone}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Saldo Devedor:</span>
+                            <span class="info-value saldo-${cliente.saldo_devedor > 0 ? 'positivo' : 'zero'}">
+                                ${cliente.saldo_devedor_formatado}
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Limite:</span>
+                            <span class="info-value">${cliente.limite_credito_formatado}</span>
+                        </div>
+                    </div>
+                    
+                    ${cliente.saldo_devedor > 0 ? `
+                        <div class="cliente-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${Math.min(cliente.percentual_limite_usado, 100)}%"></div>
+                            </div>
+                            <span class="progress-text">${cliente.percentual_limite_usado.toFixed(1)}% do limite</span>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="cliente-actions">
+                        <button class="btn-action" onclick="event.stopPropagation(); editarCliente(${cliente.id})" title="Editar">
+                            ✏️
+                        </button>
+                        <button class="btn-action" onclick="event.stopPropagation(); novaVendaCliente(${cliente.id})" title="Nova Venda">
+                            🛒
+                        </button>
+                        <button class="btn-action" onclick="event.stopPropagation(); processarPagamentoCliente(${cliente.id})" title="Pagamento">
+                            💰
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+            
+            // Atualizar paginação
+            atualizarPaginacao(totalPaginas);
+            
+            // Esconder estado vazio
+            document.getElementById('nenhumCliente').style.display = 'none';
+        }
+
+        // Funções auxiliares para status do cliente
+        function getStatusCliente(cliente) {
+            if (cliente.saldo_devedor > cliente.limite_credito * 0.8) {
+                return 'limite-alto';
+            } else if (cliente.saldo_devedor > 0) {
+                return 'com-saldo';
+            }
+            return 'ok';
+        }
+
+        function getTextStatus(cliente) {
+            if (cliente.saldo_devedor > cliente.limite_credito * 0.8) {
+                return 'Limite Alto';
+            } else if (cliente.saldo_devedor > 0) {
+                return 'Com Saldo';
+            }
+            return 'Ok';
+        }
+
+        // Filtrar clientes
+        function filtrarClientes() {
+            const filtroTexto = document.getElementById('filtroClientes').value.toLowerCase();
+            const filtroTipo = document.getElementById('filtroTipo').value;
+            const filtroOrdem = document.getElementById('filtroOrdem').value;
+
+            // Aplicar filtros
+            clientesFiltrados = clientes.filter(cliente => {
+                // Filtro por texto
+                const matchTexto = !filtroTexto || 
+                    cliente.nome.toLowerCase().includes(filtroTexto) ||
+                    (cliente.cpf && cliente.cpf.includes(filtroTexto)) ||
+                    cliente.telefone.includes(filtroTexto);
+
+                if (!matchTexto) return false;
+
+                // Filtro por tipo
+                switch(filtroTipo) {
+                    case 'com_saldo':
+                        return cliente.saldo_devedor > 0;
+                    case 'limite_proximo':
+                        return cliente.saldo_devedor > cliente.limite_credito * 0.8;
+                    case 'inadimplente':
+                        return cliente.saldo_devedor > cliente.limite_credito;
+                    default:
+                        return true;
+                }
+            });
+
+            // Aplicar ordenação
+            switch(filtroOrdem) {
+                case 'saldo_desc':
+                    clientesFiltrados.sort((a, b) => b.saldo_devedor - a.saldo_devedor);
+                    break;
+                case 'cadastro_desc':
+                    clientesFiltrados.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                    break;
+                default: // nome
+                    clientesFiltrados.sort((a, b) => a.nome.localeCompare(b.nome));
+                    break;
+            }
+
+            // Resetar paginação e renderizar
+            paginaAtual = 1;
+            renderizarClientes();
+        }
+
+        // Abrir modal novo cliente
+        function abrirModalNovoCliente() {
+            document.getElementById('tituloModalCliente').textContent = 'Novo Cliente';
+            document.getElementById('btnSalvarTexto').textContent = 'Salvar Cliente';
+            document.getElementById('formCliente').reset();
+            document.getElementById('clienteId').value = '';
+            document.getElementById('clienteLimite').value = '500.00';
+            abrirModal('modalCliente');
+        }
+
+        // Editar cliente
+        function editarCliente(clienteId) {
+            mostrarLoading('Carregando dados do cliente...');
+            
+            fetch(`/api/clientes/${clienteId}`)
+                .then(response => response.json())
+                .then(data => {
+                    esconderLoading();
+                    
+                    if (data.sucesso) {
+                        const cliente = data.cliente;
+                        
+                        document.getElementById('tituloModalCliente').textContent = 'Editar Cliente';
+                        document.getElementById('btnSalvarTexto').textContent = 'Atualizar Cliente';
+                        
+                        document.getElementById('clienteId').value = cliente.id;
+                        document.getElementById('clienteNome').value = cliente.nome;
+                        document.getElementById('clienteCpf').value = cliente.cpf || '';
+                        document.getElementById('clienteTelefone').value = cliente.telefone;
+                        document.getElementById('clienteLimite').value = cliente.limite_credito;
+                        document.getElementById('clienteEndereco').value = cliente.endereco || '';
+                        document.getElementById('clienteObservacoes').value = cliente.observacoes || '';
+                        
+                        abrirModal('modalCliente');
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao carregar cliente', 'error');
+                    }
+                })
+                .catch(error => {
+                    esconderLoading();
+                    console.error('Erro:', error);
+                    mostrarNotificacao('Erro ao carregar cliente', 'error');
+                });
+        }
+
+        // Salvar cliente
+        function salvarCliente() {
+            const form = document.getElementById('formCliente');
+            const formData = new FormData(form);
+            const dados = Object.fromEntries(formData);
+            
+            // Validações
+            if (!dados.nome.trim()) {
+                mostrarNotificacao('Nome é obrigatório', 'error');
+                return;
+            }
+            
+            if (!dados.telefone.trim()) {
+                mostrarNotificacao('Telefone é obrigatório', 'error');
+                return;
+            }
+
+            const clienteId = dados.id;
+            const isEdicao = clienteId && clienteId !== '';
+            
+            const url = isEdicao ? `/api/clientes/${clienteId}` : '/api/clientes';
+            const method = isEdicao ? 'PUT' : 'POST';
+            
+            // Remover ID dos dados se for criação
+            if (!isEdicao) {
+                delete dados.id;
+            }
+
+            mostrarLoading(isEdicao ? 'Atualizando cliente...' : 'Salvando cliente...');
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dados)
+            })
+            .then(response => response.json())
+            .then(data => {
+                esconderLoading();
+                
+                if (data.sucesso) {
+                    mostrarNotificacao(data.mensagem || 'Cliente salvo com sucesso!', 'success');
+                    fecharModalCliente();
+                    carregarClientes();
+                } else {
+                    if (data.erros && Array.isArray(data.erros)) {
+                        data.erros.forEach(erro => mostrarNotificacao(erro, 'error'));
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao salvar cliente', 'error');
+                    }
+                }
+            })
+            .catch(error => {
+                esconderLoading();
+                console.error('Erro:', error);
+                mostrarNotificacao('Erro ao salvar cliente', 'error');
+            });
+        }
+
+        // Abrir perfil do cliente
+        function abrirPerfilCliente(clienteId) {
+            mostrarLoading('Carregando perfil do cliente...');
+            
+            fetch(`/api/clientes/${clienteId}`)
+                .then(response => response.json())
+                .then(data => {
+                    esconderLoading();
+                    
+                    if (data.sucesso) {
+                        clienteAtual = data.cliente;
+                        renderizarPerfilCliente(data);
+                        abrirModal('modalPerfilCliente');
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao carregar perfil', 'error');
+                    }
+                })
+                .catch(error => {
+                    esconderLoading();
+                    console.error('Erro:', error);
+                    mostrarNotificacao('Erro ao carregar perfil', 'error');
+                });
+        }
+
+        // Renderizar perfil do cliente
+        function renderizarPerfilCliente(data) {
+            const cliente = data.cliente;
+            const stats = data.estatisticas;
+            
+            // Título
+            document.getElementById('tituloPerfilCliente').textContent = `Perfil - ${cliente.nome}`;
+            
+            // Dados do cliente
+            document.getElementById('dadosCliente').innerHTML = `
+                <div class="dados-grid">
+                    <div class="dado-item">
+                        <label>Nome:</label>
+                        <span>${cliente.nome}</span>
+                    </div>
+                    <div class="dado-item">
+                        <label>CPF:</label>
+                        <span>${cliente.cpf_formatado || 'Não informado'}</span>
+                    </div>
+                    <div class="dado-item">
+                        <label>Telefone:</label>
+                        <span>${cliente.telefone}</span>
+                    </div>
+                    <div class="dado-item">
+                        <label>Limite de Crédito:</label>
+                        <span>${cliente.limite_credito_formatado}</span>
+                    </div>
+                    <div class="dado-item">
+                        <label>Endereço:</label>
+                        <span>${cliente.endereco || 'Não informado'}</span>
+                    </div>
+                    <div class="dado-item">
+                        <label>Observações:</label>
+                        <span>${cliente.observacoes || 'Nenhuma'}</span>
+                    </div>
+                </div>
+            `;
+            
+            // Estatísticas
+            document.getElementById('estatisticasCliente').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${stats.total_compras}</div>
+                    <div class="stat-label">Total de Compras</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.valor_total_compras_formatado}</div>
+                    <div class="stat-label">Valor Total Comprado</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.valor_em_aberto_formatado}</div>
+                    <div class="stat-label">Valor em Aberto</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.vendas_abertas}</div>
+                    <div class="stat-label">Vendas em Aberto</div>
+                </div>
+            `;
+            
+            // Histórico de vendas
+            const vendasHtml = data.vendas.map(venda => `
+                <div class="venda-item">
+                    <div class="venda-header">
+                        <span class="venda-id">#${venda.id}</span>
+                        <span class="venda-data">${venda.data_venda_formatada}</span>
+                        <span class="venda-status status-${venda.status}">${venda.status_texto}</span>
+                    </div>
+                    <div class="venda-valores">
+                        <span class="venda-total">Total: ${venda.valor_total_formatado}</span>
+                        ${venda.valor_restante > 0 ? `<span class="venda-restante">Restante: ${venda.valor_restante_formatado}</span>` : ''}
+                    </div>
+                    <div class="venda-actions">
+                        <button class="btn-small" onclick="verDetalhesVenda(${venda.id})">Ver Detalhes</button>
+                        ${venda.status === 'aberta' || venda.status === 'vencida' ? 
+                            `<button class="btn-small btn-success" onclick="processarPagamentoVenda(${venda.id})">Pagar</button>` : 
+                            ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('historicoVendas').innerHTML = vendasHtml || '<p class="empty-text">Nenhuma venda encontrada.</p>';
+        }
+
+        // Configurar máscaras de input
+        function configurarMascaras() {
+            // Máscara de CPF
+            const cpfInput = document.getElementById('clienteCpf');
+            cpfInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                e.target.value = value;
+            });
+            
+            // Máscara de telefone
+            const telefoneInput = document.getElementById('clienteTelefone');
+            telefoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length >= 11) {
+                    value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+                } else if (value.length >= 10) {
+                    value = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+                } else if (value.length >= 6) {
+                    value = value.replace(/(\d{2})(\d{4})(\d)/, '($1) $2-$3');
+                } else if (value.length >= 2) {
+                    value = value.replace(/(\d{2})(\d)/, '($1) $2');
+                }
+                e.target.value = value;
+            });
+        }
+
+        // Funções de modal
+        function fecharModalCliente() {
+            fecharModal('modalCliente');
+        }
+
+        function fecharModalPerfil() {
+            fecharModal('modalPerfilCliente');
+            clienteAtual = null;
+        }
+
+        // Funções auxiliares
+        function mostrarLoadingClientes() {
+            document.getElementById('loadingClientes').style.display = 'block';
+            document.getElementById('listaClientes').style.display = 'none';
+            document.getElementById('nenhumCliente').style.display = 'none';
+        }
+
+        function esconderLoadingClientes() {
+            document.getElementById('loadingClientes').style.display = 'none';
+            document.getElementById('listaClientes').style.display = 'grid';
+        }
+
+        function mostrarEstadoVazio() {
+            document.getElementById('listaClientes').style.display = 'none';
+            document.getElementById('nenhumCliente').style.display = 'block';
+            document.getElementById('paginacaoClientes').style.display = 'none';
+        }
+
+        // Paginação
+        function atualizarPaginacao(totalPaginas) {
+            const paginacaoElement = document.getElementById('paginacaoClientes');
+            const infoElement = document.getElementById('infoPaginacao');
+            const btnAnterior = document.getElementById('btnAnterior');
+            const btnProximo = document.getElementById('btnProximo');
+
+            if (totalPaginas <= 1) {
+                paginacaoElement.style.display = 'none';
+                return;
+            }
+
+            paginacaoElement.style.display = 'flex';
+            infoElement.textContent = `Página ${paginaAtual} de ${totalPaginas}`;
+            
+            btnAnterior.disabled = paginaAtual === 1;
+            btnProximo.disabled = paginaAtual === totalPaginas;
+        }
+
+        function paginaAnterior() {
+            if (paginaAtual > 1) {
+                paginaAtual--;
+                renderizarClientes();
+            }
+        }
+
+        function proximaPagina() {
+            const totalPaginas = Math.ceil(clientesFiltrados.length / itensPorPagina);
+            if (paginaAtual < totalPaginas) {
+                paginaAtual++;
+                renderizarClientes();
+            }
+        }
+
+        // Funções do perfil do cliente
+        function editarClientePerfil() {
+            if (clienteAtual) {
+                fecharModalPerfil();
+                editarCliente(clienteAtual.id);
+            }
+        }
+
+        function excluirClientePerfil() {
+            if (clienteAtual) {
+                clienteParaExcluir = clienteAtual.id;
+                document.getElementById('textoConfirmacao').textContent = 
+                    `Tem certeza que deseja excluir o cliente "${clienteAtual.nome}"?`;
+                abrirModal('modalConfirmacao');
+            }
+        }
+
+        function novaVendaCliente(clienteId = null) {
+            const id = clienteId || (clienteAtual ? clienteAtual.id : null);
+            if (id) {
+                window.location.href = `/vendas?cliente_id=${id}`;
+            }
+        }
+
+        function processarPagamentoCliente(clienteId = null) {
+            const id = clienteId || (clienteAtual ? clienteAtual.id : null);
+            if (id) {
+                window.location.href = `/pagamentos?cliente_id=${id}`;
+            }
+        }
+
+        // Confirmação de exclusão
+        function fecharModalConfirmacao() {
+            fecharModal('modalConfirmacao');
+            clienteParaExcluir = null;
+        }
+
+        function confirmarExclusao() {
+            if (!clienteParaExcluir) return;
+
+            mostrarLoading('Excluindo cliente...');
+
+            fetch(`/api/clientes/${clienteParaExcluir}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                esconderLoading();
+                fecharModalConfirmacao();
+                
+                if (data.sucesso) {
+                    mostrarNotificacao(data.mensagem || 'Cliente excluído com sucesso!', 'success');
+                    if (clienteAtual && clienteAtual.id === clienteParaExcluir) {
+                        fecharModalPerfil();
+                    }
+                    carregarClientes();
+                } else {
+                    mostrarNotificacao(data.erro || 'Erro ao excluir cliente', 'error');
+                }
+            })
+            .catch(error => {
+                esconderLoading();
+                console.error('Erro:', error);
+                mostrarNotificacao('Erro ao excluir cliente', 'error');
+            });
+        }
+
+        // Funções relacionadas a vendas (redirecionamentos)
+        function verDetalhesVenda(vendaId) {
+            window.location.href = `/vendas?venda_id=${vendaId}`;
+        }
+
+        function processarPagamentoVenda(vendaId) {
+            window.location.href = `/pagamentos?venda_id=${vendaId}`;
+        }
+    </script>
+</body>
+</html>

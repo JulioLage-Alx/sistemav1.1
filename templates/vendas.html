@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendas - {{ config.nome_empresa }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="nav-container">
+            <a href="{{ url_for('dashboard') }}" class="logo">🥩 {{ config.nome_empresa }}</a>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="nav-item"><a href="{{ url_for('clientes') }}">Clientes</a></li>
+                    <li class="nav-item"><a href="{{ url_for('vendas') }}" class="active">Vendas</a></li>
+                    <li class="nav-item"><a href="{{ url_for('pagamentos') }}">Pagamentos</a></li>
+                    <li class="nav-item"><a href="{{ url_for('relatorios') }}">Relatórios</a></li>
+                    <li class="nav-item"><a href="{{ url_for('logout') }}" class="logout">Sair</a></li>
+                </ul>
+            </nav>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+        </div>
+    </header>
+
+    <!-- Container Principal -->
+    <div class="main-container">
+        <!-- Cabeçalho da Página -->
+        <div class="page-header">
+            <h1>🛒 Gestão de Vendas</h1>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="abrirModalNovaVenda()">
+                    <span>➕</span> Nova Venda
+                </button>
+            </div>
+        </div>
+
+        <!-- Filtros e Busca -->
+        <div class="filters-section">
+            <div class="search-bar">
+                <input type="text" id="filtroVendas" placeholder="Buscar por cliente ou número da venda..." 
+                       onkeyup="filtrarVendas()" class="search-input">
+                <button onclick="filtrarVendas()" class="search-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="filter-options">
+                <select id="filtroStatus" onchange="filtrarVendas()">
+                    <option value="">Todos os status</option>
+                    <option value="aberta">Em Aberto</option>
+                    <option value="paga">Pagas</option>
+                    <option value="vencida">Vencidas</option>
+                    <option value="cancelada">Canceladas</option>
+                </select>
+
+                <input type="date" id="filtroDataInicio" onchange="filtrarVendas()" title="Data Início">
+                <input type="date" id="filtroDataFim" onchange="filtrarVendas()" title="Data Fim">
+
+                <select id="filtroOrdem" onchange="filtrarVendas()">
+                    <option value="data_desc">Mais Recentes</option>
+                    <option value="data_asc">Mais Antigas</option>
+                    <option value="valor_desc">Maior Valor</option>
+                    <option value="valor_asc">Menor Valor</option>
+                    <option value="cliente">Por Cliente</option>
+                </select>
+
+                <button class="btn btn-secondary" onclick="limparFiltros()">🔄 Limpar</button>
+            </div>
+        </div>
+
+        <!-- Resumo das Vendas -->
+        <div class="summary-section" id="resumoVendas">
+            <!-- Carregado via JavaScript -->
+        </div>
+
+        <!-- Lista de Vendas -->
+        <div class="content-section">
+            <div id="listaVendas" class="vendas-grid">
+                <!-- Carregado via JavaScript -->
+            </div>
+
+            <div id="loadingVendas" class="loading-section" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Carregando vendas...</p>
+            </div>
+
+            <div id="nenhumaVenda" class="empty-state" style="display: none;">
+                <div class="empty-icon">🛒</div>
+                <h3>Nenhuma venda encontrada</h3>
+                <p>Registre a primeira venda ou refine sua busca.</p>
+                <button class="btn btn-primary" onclick="abrirModalNovaVenda()">Registrar Venda</button>
+            </div>
+        </div>
+
+        <!-- Paginação -->
+        <div class="pagination-section" id="paginacaoVendas" style="display: none;">
+            <button id="btnAnteriorVendas" onclick="paginaAnteriorVendas()" class="btn btn-secondary">← Anterior</button>
+            <span id="infoPaginacaoVendas" class="pagination-info">Página 1 de 1</span>
+            <button id="btnProximoVendas" onclick="proximaPaginaVendas()" class="btn btn-secondary">Próximo →</button>
+        </div>
+    </div>
+
+    <!-- Modal Nova Venda -->
+    <div id="modalNovaVenda" class="modal">
+        <div class="modal-content modal-extra-large">
+            <div class="modal-header">
+                <h3>Nova Venda</h3>
+                <button class="modal-close" onclick="fecharModalNovaVenda()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formNovaVenda">
+                    <div class="form-row">
+                        <div class="form-group flex-2">
+                            <label>Cliente *:</label>
+                            <select id="clienteVenda" name="cliente_id" required onchange="verificarLimiteCredito()">
+                                <option value="">Selecione um cliente...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <div id="infoLimiteCredito" class="limite-info" style="display: none;">
+                                <!-- Info do limite será carregada aqui -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Itens da Venda:</label>
+                        <div class="itens-header">
+                            <span>Descrição</span>
+                            <span>Quantidade</span>
+                            <span>Valor Unitário</span>
+                            <span>Subtotal</span>
+                            <span>Ações</span>
+                        </div>
+                        <div id="itensVenda">
+                            <!-- Itens serão adicionados dinamicamente -->
+                        </div>
+                        <button type="button" onclick="adicionarItemVenda()" class="btn btn-secondary btn-add-item">
+                            ➕ Adicionar Item
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Observações:</label>
+                        <textarea name="observacoes" rows="3" placeholder="Observações sobre a venda..."></textarea>
+                    </div>
+                    
+                    <div class="total-venda">
+                        <div class="total-info">
+                            <span>Quantidade de Itens: <strong id="quantidadeItens">0</strong></span>
+                            <span>Total da Venda: <strong id="totalVenda">R$ 0,00</strong></span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="fecharModalNovaVenda()" class="btn btn-secondary">Cancelar</button>
+                <button type="button" onclick="salvarVenda()" class="btn btn-primary">
+                    <span id="btnSalvarVenda">💾 Salvar Venda</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes da Venda -->
+    <div id="modalDetalhesVenda" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="tituloDetalhesVenda">Detalhes da Venda</h3>
+                <button class="modal-close" onclick="fecharModalDetalhes()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="conteudoDetalhesVenda">
+                    <!-- Carregado via JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer" id="acoesDetalhesVenda">
+                <!-- Ações carregadas via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pagamento Rápido -->
+    <div id="modalPagamentoRapido" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>💰 Pagamento Rápido</h3>
+                <button class="modal-close" onclick="fecharModalPagamento()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="infoPagamentoVenda">
+                    <!-- Info da venda será carregada aqui -->
+                </div>
+                
+                <form id="formPagamentoRapido">
+                    <input type="hidden" id="vendaIdPagamento" name="venda_id">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Valor a Pagar *:</label>
+                            <div class="input-group">
+                                <span class="input-prefix">R$</span>
+                                <input type="number" id="valorPagamento" name="valor_pago" step="0.01" min="0.01" required>
+                            </div>
+                            <div class="payment-shortcuts">
+                                <button type="button" onclick="definirValorTotal()" class="btn-shortcut">Valor Total</button>
+                                <button type="button" onclick="definirValorRestante()" class="btn-shortcut">Valor Restante</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Forma de Pagamento *:</label>
+                            <select id="formaPagamento" name="forma_pagamento" required onchange="calcularTroco()">
+                                <option value="">Selecione...</option>
+                                <option value="dinheiro">💵 Dinheiro</option>
+                                <option value="cartao">💳 Cartão</option>
+                                <option value="pix">📱 PIX</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="infoTroco" class="troco-info" style="display: none;">
+                        <strong>Troco: <span id="valorTroco">R$ 0,00</span></strong>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Observações:</label>
+                        <textarea name="observacoes" rows="2" placeholder="Observações sobre o pagamento..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="fecharModalPagamento()" class="btn btn-secondary">Cancelar</button>
+                <button type="button" onclick="processarPagamentoRapido()" class="btn btn-success">
+                    💰 Processar Pagamento
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Carregando...</div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        let vendas = [];
+        let vendasFiltradas = [];
+        let clientes = [];
+        let paginaAtualVendas = 1;
+        let itensPorPaginaVendas = 12;
+        let vendaAtual = null;
+        let contadorItens = 0;
+
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarVendas();
+            carregarClientes();
+            configurarFiltrosIniciais();
+        });
+
+        // Configurar filtros iniciais baseados na URL
+        function configurarFiltrosIniciais() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            if (urlParams.get('status')) {
+                document.getElementById('filtroStatus').value = urlParams.get('status');
+            }
+            
+            if (urlParams.get('cliente_id')) {
+                document.getElementById('clienteVenda').value = urlParams.get('cliente_id');
+                if (urlParams.get('cliente_id')) {
+                    abrirModalNovaVenda();
+                }
+            }
+            
+            if (urlParams.get('venda_id')) {
+                const vendaId = urlParams.get('venda_id');
+                setTimeout(() => abrirDetalhesVenda(vendaId), 500);
+            }
+        }
+
+        // Carregar lista de vendas
+        function carregarVendas() {
+            mostrarLoadingVendas();
+            
+            // Construir parâmetros de filtro
+            const params = new URLSearchParams();
+            const filtroStatus = document.getElementById('filtroStatus').value;
+            const filtroDataInicio = document.getElementById('filtroDataInicio').value;
+            const filtroDataFim = document.getElementById('filtroDataFim').value;
+            
+            if (filtroStatus) params.append('status', filtroStatus);
+            if (filtroDataInicio) params.append('data_inicio', filtroDataInicio);
+            if (filtroDataFim) params.append('data_fim', filtroDataFim);
+            params.append('limite', '200'); // Carregar mais vendas
+            
+            fetch(`/api/vendas?${params}`)
+                .then(response => response.json())
+                .then(data => {
+                    esconderLoadingVendas();
+                    
+                    if (data.sucesso) {
+                        vendas = data.vendas;
+                        vendasFiltradas = [...vendas];
+                        renderizarVendas();
+                        atualizarResumoVendas();
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao carregar vendas', 'error');
+                        mostrarEstadoVazioVendas();
+                    }
+                })
+                .catch(error => {
+                    esconderLoadingVendas();
+                    console.error('Erro:', error);
+                    mostrarNotificacao('Erro ao carregar vendas', 'error');
+                    mostrarEstadoVazioVendas();
+                });
+        }
+
+        // Carregar lista de clientes
+        function carregarClientes() {
+            fetch('/api/clientes?limite=1000')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.sucesso) {
+                        clientes = data.clientes;
+                        atualizarSelectClientes();
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar clientes:', error);
+                });
+        }
+
+        // Atualizar select de clientes
+        function atualizarSelectClientes() {
+            const select = document.getElementById('clienteVenda');
+            select.innerHTML = '<option value="">Selecione um cliente...</option>';
+            
+            clientes.forEach(cliente => {
+                const option = document.createElement('option');
+                option.value = cliente.id;
+                option.textContent = `${cliente.nome} - ${cliente.telefone}`;
+                option.dataset.limiteCredito = cliente.limite_credito;
+                option.dataset.saldoDevedor = cliente.saldo_devedor;
+                select.appendChild(option);
+            });
+        }
+
+        // Renderizar lista de vendas
+        function renderizarVendas() {
+            const container = document.getElementById('listaVendas');
+            
+            if (vendasFiltradas.length === 0) {
+                mostrarEstadoVazioVendas();
+                return;
+            }
+
+            // Calcular paginação
+            const totalPaginas = Math.ceil(vendasFiltradas.length / itensPorPaginaVendas);
+            const inicio = (paginaAtualVendas - 1) * itensPorPaginaVendas;
+            const fim = inicio + itensPorPaginaVendas;
+            const vendasPagina = vendasFiltradas.slice(inicio, fim);
+
+            // Gerar HTML das vendas
+            const html = vendasPagina.map(venda => `
+                <div class="venda-card" onclick="abrirDetalhesVenda(${venda.id})">
+                    <div class="venda-header">
+                        <div class="venda-id">#${venda.id}</div>
+                        <div class="venda-data">${venda.data_venda_formatada}</div>
+                        <div class="venda-status status-${venda.status}">
+                            ${venda.status_texto}
+                        </div>
+                    </div>
+                    
+                    <div class="venda-cliente">
+                        <strong>${venda.cliente_nome}</strong>
+                        <span>${venda.cliente_telefone}</span>
+                    </div>
+                    
+                    <div class="venda-valores">
+                        <div class="valor-item">
+                            <span class="valor-label">Total:</span>
+                            <span class="valor-valor">${venda.valor_total_formatado}</span>
+                        </div>
+                        ${venda.valor_pago > 0 ? `
+                            <div class="valor-item">
+                                <span class="valor-label">Pago:</span>
+                                <span class="valor-valor">${venda.valor_pago_formatado}</span>
+                            </div>
+                        ` : ''}
+                        ${venda.valor_restante > 0 ? `
+                            <div class="valor-item restante">
+                                <span class="valor-label">Restante:</span>
+                                <span class="valor-valor">${venda.valor_restante_formatado}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${venda.dias_em_aberto !== undefined ? `
+                        <div class="venda-dias ${venda.dias_em_aberto > 30 ? 'dias-vencido' : ''}">
+                            ${venda.dias_em_aberto} dias em aberto
+                        </div>
+                    ` : ''}
+                    
+                    <div class="venda-actions">
+                        <button class="btn-action" onclick="event.stopPropagation(); abrirDetalhesVenda(${venda.id})" title="Ver Detalhes">
+                            👁️
+                        </button>
+                        ${venda.status === 'aberta' || venda.status === 'vencida' ? `
+                            <button class="btn-action btn-success" onclick="event.stopPropagation(); abrirPagamentoRapido(${venda.id})" title="Pagamento">
+                                💰
+                            </button>
+                        ` : ''}
+                        ${venda.status === 'paga' ? `
+                            <button class="btn-action" onclick="event.stopPropagation(); reimprimirComprovante(${venda.id})" title="Reimprimir">
+                                🖨️
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+            
+            // Atualizar paginação
+            atualizarPaginacaoVendas(totalPaginas);
+            
+            // Esconder estado vazio
+            document.getElementById('nenhumaVenda').style.display = 'none';
+        }
+
+        // Atualizar resumo das vendas
+        function atualizarResumoVendas() {
+            const totalVendas = vendasFiltradas.length;
+            const valorTotal = vendasFiltradas.reduce((sum, v) => sum + v.valor_total, 0);
+            const valorPago = vendasFiltradas.reduce((sum, v) => sum + v.valor_pago, 0);
+            const valorRestante = vendasFiltradas.reduce((sum, v) => sum + v.valor_restante, 0);
+            
+            const vendasAbertas = vendasFiltradas.filter(v => v.status === 'aberta' || v.status === 'vencida').length;
+            const vendasPagas = vendasFiltradas.filter(v => v.status === 'paga').length;
+            
+            document.getElementById('resumoVendas').innerHTML = `
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <div class="summary-number">${totalVendas}</div>
+                        <div class="summary-label">Total de Vendas</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-number">${formatar_moeda(valorTotal)}</div>
+                        <div class="summary-label">Valor Total</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-number">${formatar_moeda(valorPago)}</div>
+                        <div class="summary-label">Valor Pago</div>
+                    </div>
+                    <div class="summary-card ${valorRestante > 0 ? 'summary-alert' : ''}">
+                        <div class="summary-number">${formatar_moeda(valorRestante)}</div>
+                        <div class="summary-label">Valor em Aberto</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-number">${vendasAbertas}</div>
+                        <div class="summary-label">Vendas em Aberto</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-number">${vendasPagas}</div>
+                        <div class="summary-label">Vendas Pagas</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Filtrar vendas
+        function filtrarVendas() {
+            const filtroTexto = document.getElementById('filtroVendas').value.toLowerCase();
+            const filtroStatus = document.getElementById('filtroStatus').value;
+            const filtroOrdem = document.getElementById('filtroOrdem').value;
+
+            // Aplicar filtros
+            vendasFiltradas = vendas.filter(venda => {
+                // Filtro por texto
+                const matchTexto = !filtroTexto || 
+                    venda.cliente_nome.toLowerCase().includes(filtroTexto) ||
+                    venda.id.toString().includes(filtroTexto) ||
+                    venda.cliente_telefone.includes(filtroTexto);
+
+                if (!matchTexto) return false;
+
+                // Filtro por status
+                if (filtroStatus && venda.status !== filtroStatus) return false;
+
+                return true;
+            });
+
+            // Aplicar ordenação
+            switch(filtroOrdem) {
+                case 'data_asc':
+                    vendasFiltradas.sort((a, b) => new Date(a.data_venda) - new Date(b.data_venda));
+                    break;
+                case 'valor_desc':
+                    vendasFiltradas.sort((a, b) => b.valor_total - a.valor_total);
+                    break;
+                case 'valor_asc':
+                    vendasFiltradas.sort((a, b) => a.valor_total - b.valor_total);
+                    break;
+                case 'cliente':
+                    vendasFiltradas.sort((a, b) => a.cliente_nome.localeCompare(b.cliente_nome));
+                    break;
+                default: // data_desc
+                    vendasFiltradas.sort((a, b) => new Date(b.data_venda) - new Date(a.data_venda));
+                    break;
+            }
+
+            // Resetar paginação e renderizar
+            paginaAtualVendas = 1;
+            renderizarVendas();
+            atualizarResumoVendas();
+        }
+
+        // Limpar filtros
+        function limparFiltros() {
+            document.getElementById('filtroVendas').value = '';
+            document.getElementById('filtroStatus').value = '';
+            document.getElementById('filtroDataInicio').value = '';
+            document.getElementById('filtroDataFim').value = '';
+            document.getElementById('filtroOrdem').value = 'data_desc';
+            
+            // Recarregar vendas
+            carregarVendas();
+        }
+
+        // Modal Nova Venda
+        function abrirModalNovaVenda() {
+            document.getElementById('formNovaVenda').reset();
+            document.getElementById('itensVenda').innerHTML = '';
+            contadorItens = 0;
+            adicionarItemVenda(); // Adicionar primeiro item
+            
+            // Se há cliente pré-selecionado na URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('cliente_id')) {
+                document.getElementById('clienteVenda').value = urlParams.get('cliente_id');
+                verificarLimiteCredito();
+            }
+            
+            abrirModal('modalNovaVenda');
+        }
+
+        function fecharModalNovaVenda() {
+            fecharModal('modalNovaVenda');
+        }
+
+        // Gerenciar itens da venda
+        function adicionarItemVenda() {
+            contadorItens++;
+            const container = document.getElementById('itensVenda');
+            
+            const itemHtml = `
+                <div class="item-venda" data-item="${contadorItens}">
+                    <input type="text" 
+                           name="descricao[]" 
+                           placeholder="Descrição do item" 
+                           required 
+                           class="item-descricao">
+                    <input type="number" 
+                           name="quantidade[]" 
+                           placeholder="Qtd" 
+                           step="0.001" 
+                           min="0.001" 
+                           required 
+                           class="item-quantidade"
+                           onchange="calcularSubtotalItem(this)">
+                    <input type="number" 
+                           name="valor_unitario[]" 
+                           placeholder="Valor Unit." 
+                           step="0.01" 
+                           min="0.01" 
+                           required 
+                           class="item-valor"
+                           onchange="calcularSubtotalItem(this)">
+                    <span class="item-subtotal">R$ 0,00</span>
+                    <button type="button" 
+                            onclick="removerItemVenda(this)" 
+                            class="btn-remove-item" 
+                            title="Remover item">🗑️</button>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', itemHtml);
+            
+            // Focar no campo de descrição do novo item
+            const novoItem = container.lastElementChild;
+            novoItem.querySelector('.item-descricao').focus();
+        }
+
+        function removerItemVenda(button) {
+            const item = button.closest('.item-venda');
+            const container = document.getElementById('itensVenda');
+            
+            // Não permitir remover se for o único item
+            if (container.children.length > 1) {
+                item.remove();
+                calcularTotalVenda();
+            } else {
+                mostrarNotificacao('Deve haver pelo menos um item na venda', 'warning');
+            }
+        }
+
+        function calcularSubtotalItem(input) {
+            const item = input.closest('.item-venda');
+            const quantidade = parseFloat(item.querySelector('.item-quantidade').value) || 0;
+            const valorUnitario = parseFloat(item.querySelector('.item-valor').value) || 0;
+            const subtotal = quantidade * valorUnitario;
+            
+            item.querySelector('.item-subtotal').textContent = formatar_moeda(subtotal);
+            
+            // Recalcular total da venda
+            calcularTotalVenda();
+        }
+
+        function calcularTotalVenda() {
+            const itens = document.querySelectorAll('#itensVenda .item-venda');
+            let total = 0;
+            let quantidadeItens = 0;
+            
+            itens.forEach(item => {
+                const quantidade = parseFloat(item.querySelector('.item-quantidade').value) || 0;
+                const valorUnitario = parseFloat(item.querySelector('.item-valor').value) || 0;
+                const subtotal = quantidade * valorUnitario;
+                
+                if (quantidade > 0 && valorUnitario > 0) {
+                    total += subtotal;
+                    quantidadeItens++;
+                }
+            });
+            
+            document.getElementById('totalVenda').textContent = formatar_moeda(total);
+            document.getElementById('quantidadeItens').textContent = quantidadeItens;
+            
+            // Verificar limite de crédito
+            verificarLimiteCredito();
+        }
+
+        function verificarLimiteCredito() {
+            const clienteSelect = document.getElementById('clienteVenda');
+            const infoLimite = document.getElementById('infoLimiteCredito');
+            
+            if (!clienteSelect.value) {
+                infoLimite.style.display = 'none';
+                return;
+            }
+            
+            const option = clienteSelect.selectedOptions[0];
+            const limiteCredito = parseFloat(option.dataset.limiteCredito) || 0;
+            const saldoDevedor = parseFloat(option.dataset.saldoDevedor) || 0;
+            const totalVenda = obterTotalVenda();
+            
+            const novoSaldo = saldoDevedor + totalVenda;
+            const disponivel = limiteCredito - saldoDevedor;
+            
+            let statusClass = 'ok';
+            let statusText = 'Dentro do limite';
+            
+            if (novoSaldo > limiteCredito) {
+                statusClass = 'excedido';
+                statusText = 'Limite excedido!';
+            } else if (novoSaldo > limiteCredito * 0.8) {
+                statusClass = 'proximo';
+                statusText = 'Próximo do limite';
+            }
+            
+            infoLimite.innerHTML = `
+                <div class="limite-status ${statusClass}">
+                    <strong>${statusText}</strong>
+                </div>
+                <div class="limite-detalhes">
+                    <span>Limite: ${formatar_moeda(limiteCredito)}</span>
+                    <span>Atual: ${formatar_moeda(saldoDevedor)}</span>
+                    <span>Disponível: ${formatar_moeda(disponivel)}</span>
+                    <span>Novo Total: ${formatar_moeda(novoSaldo)}</span>
+                </div>
+            `;
+            infoLimite.style.display = 'block';
+        }
+
+        function obterTotalVenda() {
+            const totalText = document.getElementById('totalVenda').textContent;
+            return parseFloat(totalText.replace('R$', '').replace(/\./g, '').replace(',', '.')) || 0;
+        }
+
+        // Salvar venda
+        function salvarVenda() {
+            const form = document.getElementById('formNovaVenda');
+            const formData = new FormData(form);
+            
+            // Validações
+            const clienteId = formData.get('cliente_id');
+            if (!clienteId) {
+                mostrarNotificacao('Selecione um cliente', 'error');
+                return;
+            }
+            
+            // Coletar itens
+            const descricoes = formData.getAll('descricao[]');
+            const quantidades = formData.getAll('quantidade[]');
+            const valoresUnitarios = formData.getAll('valor_unitario[]');
+            
+            if (descricoes.length === 0) {
+                mostrarNotificacao('Adicione pelo menos um item', 'error');
+                return;
+            }
+            
+            const itens = [];
+            let totalCalculado = 0;
+            
+            for (let i = 0; i < descricoes.length; i++) {
+                const descricao = descricoes[i].trim();
+                const quantidade = parseFloat(quantidades[i]);
+                const valorUnitario = parseFloat(valoresUnitarios[i]);
+                
+                if (!descricao || !quantidade || !valorUnitario || quantidade <= 0 || valorUnitario <= 0) {
+                    mostrarNotificacao(`Item ${i + 1}: Preencha todos os campos corretamente`, 'error');
+                    return;
+                }
+                
+                const subtotal = quantidade * valorUnitario;
+                totalCalculado += subtotal;
+                
+                itens.push({
+                    descricao,
+                    quantidade,
+                    valor_unitario: valorUnitario
+                });
+            }
+            
+            // Verificar limite de crédito uma última vez
+            const clienteSelect = document.getElementById('clienteVenda');
+            const option = clienteSelect.selectedOptions[0];
+            const limiteCredito = parseFloat(option.dataset.limiteCredito) || 0;
+            const saldoDevedor = parseFloat(option.dataset.saldoDevedor) || 0;
+            
+            if ((saldoDevedor + totalCalculado) > limiteCredito) {
+                if (!confirm('O limite de crédito será excedido. Deseja continuar mesmo assim?')) {
+                    return;
+                }
+            }
+            
+            // Preparar dados para envio
+            const dadosVenda = {
+                cliente_id: parseInt(clienteId),
+                itens: itens,
+                observacoes: formData.get('observacoes') || ''
+            };
+            
+            mostrarLoading('Salvando venda...');
+            
+            fetch('/api/vendas', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dadosVenda)
+            })
+            .then(response => response.json())
+            .then(data => {
+                esconderLoading();
+                
+                if (data.sucesso) {
+                    mostrarNotificacao(data.mensagem || 'Venda criada com sucesso!', 'success');
+                    fecharModalNovaVenda();
+                    carregarVendas();
+                    
+                    // Perguntar se quer processar pagamento
+                    if (confirm('Venda criada com sucesso! Deseja processar um pagamento agora?')) {
+                        setTimeout(() => abrirPagamentoRapido(data.venda_id), 500);
+                    }
+                } else {
+                    if (data.erros && Array.isArray(data.erros)) {
+                        data.erros.forEach(erro => mostrarNotificacao(erro, 'error'));
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao salvar venda', 'error');
+                    }
+                }
+            })
+            .catch(error => {
+                esconderLoading();
+                console.error('Erro:', error);
+                mostrarNotificacao('Erro ao salvar venda', 'error');
+            });
+        }
+
+        // Detalhes da venda
+        function abrirDetalhesVenda(vendaId) {
+            mostrarLoading('Carregando detalhes da venda...');
+            
+            fetch(`/api/vendas/${vendaId}`)
+                .then(response => response.json())
+                .then(data => {
+                    esconderLoading();
+                    
+                    if (data.sucesso) {
+                        vendaAtual = data.venda;
+                        renderizarDetalhesVenda(data.venda);
+                        abrirModal('modalDetalhesVenda');
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao carregar detalhes', 'error');
+                    }
+                })
+                .catch(error => {
+                    esconderLoading();
+                    console.error('Erro:', error);
+                    mostrarNotificacao('Erro ao carregar detalhes', 'error');
+                });
+        }
+
+        function renderizarDetalhesVenda(venda) {
+            document.getElementById('tituloDetalhesVenda').textContent = `Venda #${venda.id}`;
+            
+            // Conteúdo dos detalhes
+            let detalhesHtml = `
+                <div class="detalhes-venda">
+                    <!-- Cabeçalho da Venda -->
+                    <div class="detalhes-section">
+                        <h4>📋 Informações da Venda</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Número:</label>
+                                <span>#${venda.id}</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Data:</label>
+                                <span>${venda.data_venda_formatada}</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Status:</label>
+                                <span class="status-badge status-${venda.status}">${venda.status_texto}</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Cliente:</label>
+                                <span>${venda.cliente_nome}</span>
+                            </div>
+                            <div class="info-item">
+                                <label>CPF:</label>
+                                <span>${venda.cliente_cpf || 'Não informado'}</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Observações:</label>
+                                <span>${venda.observacoes || 'Nenhuma'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Itens da Venda -->
+                    <div class="detalhes-section">
+                        <h4>🛒 Itens da Venda</h4>
+                        <div class="itens-tabela">
+                            <div class="itens-header">
+                                <span>Descrição</span>
+                                <span>Quantidade</span>
+                                <span>Valor Unit.</span>
+                                <span>Subtotal</span>
+                            </div>
+                            ${venda.itens.map(item => `
+                                <div class="item-row">
+                                    <span class="item-descricao">${item.descricao}</span>
+                                    <span class="item-quantidade">${item.quantidade_formatada}</span>
+                                    <span class="item-valor">${item.valor_unitario_formatado}</span>
+                                    <span class="item-subtotal">${item.subtotal_formatado}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Totais -->
+                    <div class="detalhes-section">
+                        <h4>💰 Valores</h4>
+                        <div class="valores-grid">
+                            <div class="valor-item">
+                                <label>Total da Venda:</label>
+                                <span class="valor-destaque">${venda.valor_total_formatado}</span>
+                            </div>
+                            <div class="valor-item">
+                                <label>Valor Pago:</label>
+                                <span>${venda.valor_pago_formatado}</span>
+                            </div>
+                            <div class="valor-item">
+                                <label>Valor Restante:</label>
+                                <span class="valor-restante ${venda.valor_restante > 0 ? 'valor-pendente' : ''}">${venda.valor_restante_formatado}</span>
+                            </div>
+                        </div>
+                    </div>
+            `;
+
+            // Histórico de Pagamentos
+            if (venda.pagamentos && venda.pagamentos.length > 0) {
+                detalhesHtml += `
+                    <div class="detalhes-section">
+                        <h4>📅 Histórico de Pagamentos</h4>
+                        <div class="pagamentos-lista">
+                            ${venda.pagamentos.map(pagamento => `
+                                <div class="pagamento-item">
+                                    <div class="pagamento-info">
+                                        <span class="pagamento-data">${pagamento.data_pagamento_formatada}</span>
+                                        <span class="pagamento-valor">${pagamento.valor_pago_formatado}</span>
+                                        <span class="pagamento-forma">${pagamento.forma_pagamento_texto}</span>
+                                    </div>
+                                    ${pagamento.observacoes ? `<div class="pagamento-obs">${pagamento.observacoes}</div>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Vendas de Origem (se for saldo restante)
+            if (venda.vendas_origem && venda.vendas_origem.length > 0) {
+                detalhesHtml += `
+                    <div class="detalhes-section">
+                        <h4>🔗 Vendas de Origem</h4>
+                        <p class="origem-explicacao">Esta venda foi criada como saldo restante das seguintes vendas:</p>
+                        <div class="vendas-origem">
+                            ${venda.vendas_origem.map(origem => `
+                                <div class="origem-item">
+                                    <span class="origem-id">#${origem.id}</span>
+                                    <span class="origem-data">${origem.data_venda_formatada}</span>
+                                    <span class="origem-valor">${origem.valor_total_formatado}</span>
+                                    <button class="btn-small" onclick="abrirDetalhesVenda(${origem.id})">Ver Detalhes</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            detalhesHtml += '</div>';
+            
+            document.getElementById('conteudoDetalhesVenda').innerHTML = detalhesHtml;
+            
+            // Ações do modal
+            let acoesHtml = `
+                <button type="button" onclick="fecharModalDetalhes()" class="btn btn-secondary">Fechar</button>
+            `;
+            
+            if (venda.status === 'aberta' || venda.status === 'vencida') {
+                acoesHtml += `
+                    <button type="button" onclick="abrirPagamentoRapido(${venda.id})" class="btn btn-success">
+                        💰 Processar Pagamento
+                    </button>
+                `;
+            }
+            
+            if (venda.status === 'paga') {
+                acoesHtml += `
+                    <button type="button" onclick="reimprimirComprovante(${venda.id})" class="btn btn-primary">
+                        🖨️ Reimprimir Comprovante
+                    </button>
+                `;
+            }
+            
+            document.getElementById('acoesDetalhesVenda').innerHTML = acoesHtml;
+        }
+
+        function fecharModalDetalhes() {
+            fecharModal('modalDetalhesVenda');
+            vendaAtual = null;
+        }
+
+        // Pagamento Rápido
+        function abrirPagamentoRapido(vendaId) {
+            // Se já temos os dados da venda, usar eles
+            if (vendaAtual && vendaAtual.id === vendaId) {
+                renderizarPagamentoRapido(vendaAtual);
+                abrirModal('modalPagamentoRapido');
+                return;
+            }
+            
+            // Senão, buscar os dados
+            mostrarLoading('Carregando dados da venda...');
+            
+            fetch(`/api/vendas/${vendaId}`)
+                .then(response => response.json())
+                .then(data => {
+                    esconderLoading();
+                    
+                    if (data.sucesso) {
+                        renderizarPagamentoRapido(data.venda);
+                        abrirModal('modalPagamentoRapido');
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao carregar venda', 'error');
+                    }
+                })
+                .catch(error => {
+                    esconderLoading();
+                    console.error('Erro:', error);
+                    mostrarNotificacao('Erro ao carregar venda', 'error');
+                });
+        }
+
+        function renderizarPagamentoRapido(venda) {
+            document.getElementById('vendaIdPagamento').value = venda.id;
+            
+            document.getElementById('infoPagamentoVenda').innerHTML = `
+                <div class="pagamento-venda-info">
+                    <h4>Venda #${venda.id} - ${venda.cliente_nome}</h4>
+                    <div class="pagamento-valores">
+                        <span>Total: <strong>${venda.valor_total_formatado}</strong></span>
+                        <span>Pago: <strong>${venda.valor_pago_formatado}</strong></span>
+                        <span>Restante: <strong class="valor-restante">${venda.valor_restante_formatado}</strong></span>
+                    </div>
+                </div>
+            `;
+            
+            // Definir valor restante como padrão
+            document.getElementById('valorPagamento').value = venda.valor_restante.toFixed(2);
+            
+            // Limpar outros campos
+            document.getElementById('formaPagamento').value = '';
+            document.getElementById('infoTroco').style.display = 'none';
+            document.querySelector('#formPagamentoRapido textarea[name="observacoes"]').value = '';
+        }
+
+        function definirValorTotal() {
+            if (vendaAtual) {
+                document.getElementById('valorPagamento').value = vendaAtual.valor_total.toFixed(2);
+                calcularTroco();
+            }
+        }
+
+        function definirValorRestante() {
+            if (vendaAtual) {
+                document.getElementById('valorPagamento').value = vendaAtual.valor_restante.toFixed(2);
+                calcularTroco();
+            }
+        }
+
+        function calcularTroco() {
+            const forma = document.getElementById('formaPagamento').value;
+            const valorPago = parseFloat(document.getElementById('valorPagamento').value) || 0;
+            const infoTroco = document.getElementById('infoTroco');
+            
+            if (forma === 'dinheiro' && vendaAtual) {
+                const valorRestante = vendaAtual.valor_restante;
+                const troco = valorPago - valorRestante;
+                
+                if (troco > 0) {
+                    document.getElementById('valorTroco').textContent = formatar_moeda(troco);
+                    infoTroco.style.display = 'block';
+                } else {
+                    infoTroco.style.display = 'none';
+                }
+            } else {
+                infoTroco.style.display = 'none';
+            }
+        }
+
+        function processarPagamentoRapido() {
+            const form = document.getElementById('formPagamentoRapido');
+            const formData = new FormData(form);
+            const dados = Object.fromEntries(formData);
+            
+            // Validações
+            if (!dados.valor_pago || parseFloat(dados.valor_pago) <= 0) {
+                mostrarNotificacao('Informe um valor válido', 'error');
+                return;
+            }
+            
+            if (!dados.forma_pagamento) {
+                mostrarNotificacao('Selecione a forma de pagamento', 'error');
+                return;
+            }
+            
+            mostrarLoading('Processando pagamento...');
+            
+            fetch('/api/pagamentos/simples', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dados)
+            })
+            .then(response => response.json())
+            .then(data => {
+                esconderLoading();
+                
+                if (data.sucesso) {
+                    mostrarNotificacao(data.mensagem || 'Pagamento processado com sucesso!', 'success');
+                    fecharModalPagamento();
+                    fecharModalDetalhes(); // Fechar detalhes se estiver aberto
+                    carregarVendas(); // Recarregar lista
+                    
+                    // Informar sobre impressão
+                    if (data.impressao) {
+                        if (data.impressao.sucesso) {
+                            mostrarNotificacao('Comprovante impresso automaticamente', 'info');
+                        } else {
+                            mostrarNotificacao(`Erro na impressão: ${data.impressao.mensagem}`, 'warning');
+                        }
+                    }
+                    
+                    // Mostrar troco se houver
+                    if (data.troco > 0) {
+                        mostrarNotificacao(`Troco: ${data.troco_formatado}`, 'info');
+                    }
+                } else {
+                    mostrarNotificacao(data.erro || 'Erro ao processar pagamento', 'error');
+                }
+            })
+            .catch(error => {
+                esconderLoading();
+                console.error('Erro:', error);
+                mostrarNotificacao('Erro ao processar pagamento', 'error');
+            });
+        }
+
+        function fecharModalPagamento() {
+            fecharModal('modalPagamentoRapido');
+        }
+
+        // Reimprimir comprovante
+        function reimprimirComprovante(vendaId) {
+            mostrarLoading('Imprimindo comprovante...');
+            
+            fetch(`/api/impressao/comprovante/${vendaId}`)
+                .then(response => response.json())
+                .then(data => {
+                    esconderLoading();
+                    
+                    if (data.sucesso) {
+                        mostrarNotificacao(data.mensagem || 'Comprovante impresso com sucesso!', 'success');
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao imprimir comprovante', 'error');
+                    }
+                })
+                .catch(error => {
+                    esconderLoading();
+                    console.error('Erro:', error);
+                    mostrarNotificacao('Erro ao imprimir comprovante', 'error');
+                });
+        }
+
+        // Funções auxiliares
+        function mostrarLoadingVendas() {
+            document.getElementById('loadingVendas').style.display = 'block';
+            document.getElementById('listaVendas').style.display = 'none';
+            document.getElementById('nenhumaVenda').style.display = 'none';
+        }
+
+        function esconderLoadingVendas() {
+            document.getElementById('loadingVendas').style.display = 'none';
+            document.getElementById('listaVendas').style.display = 'grid';
+        }
+
+        function mostrarEstadoVazioVendas() {
+            document.getElementById('listaVendas').style.display = 'none';
+            document.getElementById('nenhumaVenda').style.display = 'block';
+            document.getElementById('paginacaoVendas').style.display = 'none';
+        }
+
+        // Paginação
+        function atualizarPaginacaoVendas(totalPaginas) {
+            const paginacaoElement = document.getElementById('paginacaoVendas');
+            const infoElement = document.getElementById('infoPaginacaoVendas');
+            const btnAnterior = document.getElementById('btnAnteriorVendas');
+            const btnProximo = document.getElementById('btnProximoVendas');
+
+            if (totalPaginas <= 1) {
+                paginacaoElement.style.display = 'none';
+                return;
+            }
+
+            paginacaoElement.style.display = 'flex';
+            infoElement.textContent = `Página ${paginaAtualVendas} de ${totalPaginas}`;
+            
+            btnAnterior.disabled = paginaAtualVendas === 1;
+            btnProximo.disabled = paginaAtualVendas === totalPaginas;
+        }
+
+        function paginaAnteriorVendas() {
+            if (paginaAtualVendas > 1) {
+                paginaAtualVendas--;
+                renderizarVendas();
+            }
+        }
+
+        function proximaPaginaVendas() {
+            const totalPaginas = Math.ceil(vendasFiltradas.length / itensPorPaginaVendas);
+            if (paginaAtualVendas < totalPaginas) {
+                paginaAtualVendas++;
+                renderizarVendas();
+            }
+        }
+
+        // Função para formatar moeda (caso não esteja no main.js)
+        function formatar_moeda(valor) {
+            try {
+                return new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                }).format(valor);
+            } catch {
+                return `R$ ${valor.toFixed(2).replace('.', ',')}`;
+            }
+        }
+
+        // Configurar eventos dos inputs de valor
+        document.addEventListener('input', function(e) {
+            if (e.target.id === 'valorPagamento') {
+                calcularTroco();
+            }
+        });
+    </script>
+</body>
+</html>

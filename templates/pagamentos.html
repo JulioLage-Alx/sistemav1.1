@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamentos - {{ config.nome_empresa }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="nav-container">
+            <a href="{{ url_for('dashboard') }}" class="logo">🥩 {{ config.nome_empresa }}</a>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="nav-item"><a href="{{ url_for('clientes') }}">Clientes</a></li>
+                    <li class="nav-item"><a href="{{ url_for('vendas') }}">Vendas</a></li>
+                    <li class="nav-item"><a href="{{ url_for('pagamentos') }}" class="active">Pagamentos</a></li>
+                    <li class="nav-item"><a href="{{ url_for('relatorios') }}">Relatórios</a></li>
+                    <li class="nav-item"><a href="{{ url_for('logout') }}" class="logout">Sair</a></li>
+                </ul>
+            </nav>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+        </div>
+    </header>
+
+    <!-- Container Principal -->
+    <div class="main-container">
+        <!-- Cabeçalho da Página -->
+        <div class="page-header">
+            <h1>💰 Gestão de Pagamentos</h1>
+            <div class="page-actions">
+                <button class="btn btn-success" onclick="abrirSeletorCliente()">
+                    <span>💳</span> Processar Pagamento
+                </button>
+            </div>
+        </div>
+
+        <!-- Modos de Pagamento -->
+        <div class="payment-modes">
+            <div class="mode-selector">
+                <button class="mode-btn active" onclick="alternarModo('simples')" id="btnModoSimples">
+                    🎯 Pagamento Simples
+                </button>
+                <button class="mode-btn" onclick="alternarModo('multiplo')" id="btnModoMultiplo">
+                    🔄 Pagamento Múltiplo
+                </button>
+            </div>
+        </div>
+
+        <!-- Seletor de Cliente -->
+        <div class="filters-section">
+            <div class="search-bar">
+                <select id="clientesPagamento" onchange="selecionarCliente()" class="search-input">
+                    <option value="">Selecione um cliente para ver vendas em aberto...</option>
+                </select>
+                <button onclick="abrirSeletorCliente()" class="search-btn" title="Buscar Cliente">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Informações do Cliente Selecionado -->
+        <div id="infoClienteSelecionado" class="client-info" style="display: none;">
+            <!-- Carregado via JavaScript -->
+        </div>
+
+        <!-- Vendas em Aberto -->
+        <div class="content-section">
+            <div id="vendasEmAberto" class="vendas-pagamento">
+                <!-- Carregado via JavaScript -->
+            </div>
+
+            <div id="loadingPagamentos" class="loading-section" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Carregando vendas em aberto...</p>
+            </div>
+
+            <div id="nenhumaVendaAberta" class="empty-state" style="display: none;">
+                <div class="empty-icon">💰</div>
+                <h3>Nenhuma venda em aberto</h3>
+                <p>Selecione um cliente que possua vendas pendentes de pagamento.</p>
+            </div>
+
+            <div id="clienteNaoSelecionado" class="empty-state">
+                <div class="empty-icon">👤</div>
+                <h3>Selecione um cliente</h3>
+                <p>Escolha um cliente acima para visualizar suas vendas em aberto.</p>
+            </div>
+        </div>
+
+        <!-- Resumo do Pagamento -->
+        <div id="resumoPagamento" class="payment-summary" style="display: none;">
+            <!-- Carregado via JavaScript -->
+        </div>
+    </div>
+
+    <!-- Modal Seletor de Cliente -->
+    <div id="modalSeletorCliente" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Selecionar Cliente</h3>
+                <button class="modal-close" onclick="fecharSeletorCliente()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="search-bar">
+                    <input type="text" id="buscaCliente" placeholder="Buscar cliente por nome, CPF ou telefone..." 
+                           onkeyup="buscarClientesModal()" class="search-input">
+                </div>
+                
+                <div id="listaClientesModal" class="clientes-modal">
+                    <!-- Carregado via JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pagamento Simples -->
+    <div id="modalPagamentoSimples" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>💳 Pagamento Simples</h3>
+                <button class="modal-close" onclick="fecharModalPagamentoSimples()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="infoVendaPagamento" class="venda-payment-info">
+                    <!-- Carregado via JavaScript -->
+                </div>
+                
+                <form id="formPagamentoSimples">
+                    <input type="hidden" id="vendaIdSimples" name="venda_id">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Valor a Pagar *:</label>
+                            <div class="input-group">
+                                <span class="input-prefix">R$</span>
+                                <input type="number" id="valorPagamentoSimples" name="valor_pago" 
+                                       step="0.01" min="0.01" required onchange="calcularTrocoSimples()">
+                            </div>
+                            <div class="payment-shortcuts">
+                                <button type="button" onclick="definirValorTotalSimples()" class="btn-shortcut">
+                                    Valor Total
+                                </button>
+                                <button type="button" onclick="definirValorRestanteSimples()" class="btn-shortcut">
+                                    Valor Restante
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Forma de Pagamento *:</label>
+                            <select id="formaPagamentoSimples" name="forma_pagamento" required onchange="calcularTrocoSimples()">
+                                <option value="">Selecione...</option>
+                                <option value="dinheiro">💵 Dinheiro</option>
+                                <option value="cartao">💳 Cartão</option>
+                                <option value="pix">📱 PIX</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="infoTrocoSimples" class="troco-info" style="display: none;">
+                        <strong>Troco: <span id="valorTrocoSimples">R$ 0,00</span></strong>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Observações:</label>
+                        <textarea name="observacoes" rows="3" placeholder="Observações sobre o pagamento..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="fecharModalPagamentoSimples()" class="btn btn-secondary">Cancelar</button>
+                <button type="button" onclick="processarPagamentoSimples()" class="btn btn-success">
+                    💰 Processar Pagamento
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pagamento Múltiplo -->
+    <div id="modalPagamentoMultiplo" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>🔄 Pagamento Múltiplo</h3>
+                <button class="modal-close" onclick="fecharModalPagamentoMultiplo()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="infoClienteMultiplo" class="client-payment-info">
+                    <!-- Carregado via JavaScript -->
+                </div>
+                
+                <form id="formPagamentoMultiplo">
+                    <input type="hidden" id="clienteIdMultiplo" name="cliente_id">
+                    
+                    <div class="form-group">
+                        <label>Selecione as vendas para pagamento:</label>
+                        <div id="vendasSelecionaveis" class="vendas-selectionable">
+                            <!-- Carregado via JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <div class="resumo-selecao" id="resumoSelecao">
+                        <div class="resumo-item">
+                            <span>Vendas Selecionadas: <strong id="quantidadeVendasSelecionadas">0</strong></span>
+                        </div>
+                        <div class="resumo-item">
+                            <span>Valor Total Devido: <strong id="valorTotalDevido">R$ 0,00</strong></span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Valor Pago *:</label>
+                            <div class="input-group">
+                                <span class="input-prefix">R$</span>
+                                <input type="number" id="valorPagamentoMultiplo" name="valor_pago" 
+                                       step="0.01" min="0.01" required onchange="calcularDiferencaMultiplo()">
+                            </div>
+                            <div class="payment-shortcuts">
+                                <button type="button" onclick="definirValorTotalMultiplo()" class="btn-shortcut">
+                                    Valor Total Devido
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Forma de Pagamento *:</label>
+                            <select id="formaPagamentoMultiplo" name="forma_pagamento" required>
+                                <option value="">Selecione...</option>
+                                <option value="dinheiro">💵 Dinheiro</option>
+                                <option value="cartao">💳 Cartão</option>
+                                <option value="pix">📱 PIX</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="infoDiferencaMultiplo" class="diferenca-info" style="display: none;">
+                        <!-- Informações sobre sobra/falta de dinheiro -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="fecharModalPagamentoMultiplo()" class="btn btn-secondary">Cancelar</button>
+                <button type="button" onclick="processarPagamentoMultiplo()" class="btn btn-success">
+                    🔄 Processar Pagamento Múltiplo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Carregando...</div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        let clientes = [];
+        let clientesFiltrados = [];
+        let clienteSelecionado = null;
+        let vendasEmAbertoAtual = [];
+        let modoAtual = 'simples';
+        let vendaAtualSimples = null;
+        let vendasSelecionadas = [];
+
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarClientes();
+            configurarParametrosURL();
+        });
+
+        // Configurar parâmetros iniciais da URL
+        function configurarParametrosURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            if (urlParams.get('cliente_id')) {
+                const clienteId = parseInt(urlParams.get('cliente_id'));
+                setTimeout(() => {
+                    document.getElementById('clientesPagamento').value = clienteId;
+                    selecionarCliente();
+                }, 500);
+            }
+            
+            if (urlParams.get('venda_id')) {
+                const vendaId = parseInt(urlParams.get('venda_id'));
+                setTimeout(() => {
+                    // Carregar venda específica para pagamento
+                    carregarVendaParaPagamento(vendaId);
+                }, 500);
+            }
+        }
+
+        // Carregar lista de clientes
+        function carregarClientes() {
+            fetch('/api/clientes?limite=1000')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.sucesso) {
+                        clientes = data.clientes.filter(c => c.saldo_devedor > 0);
+                        clientesFiltrados = [...clientes];
+                        atualizarSelectClientes();
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar clientes:', error);
+                });
+        }
+
+        // Atualizar select de clientes
+        function atualizarSelectClientes() {
+            const select = document.getElementById('clientesPagamento');
+            select.innerHTML = '<option value="">Selecione um cliente para ver vendas em aberto...</option>';
+            
+            clientes.forEach(cliente => {
+                const option = document.createElement('option');
+                option.value = cliente.id;
+                option.textContent = `${cliente.nome} - ${cliente.saldo_devedor_formatado} em aberto`;
+                select.appendChild(option);
+            });
+        }
+
+        // Alternar modo de pagamento
+        function alternarModo(modo) {
+            modoAtual = modo;
+            
+            // Atualizar botões
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btnModo${modo.charAt(0).toUpperCase() + modo.slice(1)}`).classList.add('active');
+            
+            // Recarregar vendas se cliente selecionado
+            if (clienteSelecionado) {
+                carregarVendasEmAberto(clienteSelecionado.id);
+            }
+        }
+
+        // Selecionar cliente
+        function selecionarCliente() {
+            const select = document.getElementById('clientesPagamento');
+            const clienteId = parseInt(select.value);
+            
+            if (!clienteId) {
+                clienteSelecionado = null;
+                document.getElementById('infoClienteSelecionado').style.display = 'none';
+                document.getElementById('vendasEmAberto').innerHTML = '';
+                document.getElementById('clienteNaoSelecionado').style.display = 'block';
+                document.getElementById('nenhumaVendaAberta').style.display = 'none';
+                document.getElementById('resumoPagamento').style.display = 'none';
+                return;
+            }
+            
+            clienteSelecionado = clientes.find(c => c.id === clienteId);
+            
+            if (clienteSelecionado) {
+                // Mostrar informações do cliente
+                document.getElementById('infoClienteSelecionado').innerHTML = `
+                    <div class="client-info-card">
+                        <div class="client-header">
+                            <h3>${clienteSelecionado.nome}</h3>
+                            <span class="client-phone">${clienteSelecionado.telefone}</span>
+                        </div>
+                        <div class="client-stats">
+                            <div class="stat-item">
+                                <label>Saldo Devedor:</label>
+                                <span class="saldo-devedor">${clienteSelecionado.saldo_devedor_formatado}</span>
+                            </div>
+                            <div class="stat-item">
+                                <label>Limite de Crédito:</label>
+                                <span>${clienteSelecionado.limite_credito_formatado}</span>
+                            </div>
+                            <div class="stat-item">
+                                <label>Disponível:</label>
+                                <span>${formatar_moeda(clienteSelecionado.limite_credito - clienteSelecionado.saldo_devedor)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('infoClienteSelecionado').style.display = 'block';
+                document.getElementById('clienteNaoSelecionado').style.display = 'none';
+                
+                // Carregar vendas em aberto
+                carregarVendasEmAberto(clienteId);
+            }
+        }
+
+        // Carregar vendas em aberto do cliente
+        function carregarVendasEmAberto(clienteId) {
+            mostrarLoadingPagamentos();
+            
+            fetch(`/api/pagamentos/vendas-em-aberto/${clienteId}`)
+                .then(response => response.json())
+                .then(data => {
+                    esconderLoadingPagamentos();
+                    
+                    if (data.sucesso) {
+                        vendasEmAbertoAtual = data.vendas;
+                        
+                        if (vendasEmAbertoAtual.length > 0) {
+                            renderizarVendasEmAberto(vendasEmAbertoAtual);
+                            atualizarResumoPagamento(data);
+                        } else {
+                            mostrarEstadoVazioVendas();
+                        }
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao carregar vendas', 'error');
+                        mostrarEstadoVazioVendas();
+                    }
+                })
+                .catch(error => {
+                    esconderLoadingPagamentos();
+                    console.error('Erro:', error);
+                    mostrarNotificacao('Erro ao carregar vendas em aberto', 'error');
+                    mostrarEstadoVazioVendas();
+                });
+        }
+
+        // Renderizar vendas em aberto
+        function renderizarVendasEmAberto(vendas) {
+            const container = document.getElementById('vendasEmAberto');
+            
+            if (modoAtual === 'simples') {
+                // Modo simples: cada venda é independente
+                const html = vendas.map(venda => `
+                    <div class="venda-pagamento-card">
+                        <div class="venda-header">
+                            <div class="venda-id">#${venda.id}</div>
+                            <div class="venda-data">${venda.data_venda_formatada}</div>
+                            <div class="venda-status status-${venda.status}">
+                                ${venda.status === 'vencida' ? 'Vencida' : 'Em Aberto'}
+                            </div>
+                        </div>
+                        
+                        <div class="venda-valores">
+                            <div class="valor-item">
+                                <span class="valor-label">Total:</span>
+                                <span class="valor-valor">${venda.valor_total_formatado}</span>
+                            </div>
+                            <div class="valor-item">
+                                <span class="valor-label">Restante:</span>
+                                <span class="valor-valor restante">${venda.valor_restante_formatado}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="venda-dias ${venda.dias_em_aberto > 30 ? 'dias-vencido' : ''}">
+                            ${venda.dias_em_aberto} dias em aberto
+                        </div>
+                        
+                        <div class="venda-actions">
+                            <button class="btn btn-success" onclick="abrirPagamentoSimples(${venda.id})">
+                                💰 Pagar
+                            </button>
+                            <button class="btn btn-secondary" onclick="verDetalhesVenda(${venda.id})">
+                                👁️ Detalhes
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                container.innerHTML = html;
+            } else {
+                // Modo múltiplo: vendas selecionáveis
+                const html = `
+                    <div class="vendas-multiplo">
+                        <div class="vendas-header">
+                            <h4>Selecione as vendas para pagamento em lote:</h4>
+                            <div class="select-actions">
+                                <button type="button" onclick="selecionarTodasVendas()" class="btn-link">Selecionar Todas</button>
+                                <button type="button" onclick="limparSelecaoVendas()" class="btn-link">Limpar Seleção</button>
+                            </div>
+                        </div>
+                        
+                        <div class="vendas-selecao">
+                            ${vendas.map(venda => `
+                                <div class="venda-selecao-item">
+                                    <label class="venda-checkbox">
+                                        <input type="checkbox" 
+                                               value="${venda.id}" 
+                                               data-valor-restante="${venda.valor_restante}"
+                                               onchange="atualizarSelecaoVendas()">
+                                        <span class="checkmark"></span>
+                                    </label>
+                                    
+                                    <div class="venda-info">
+                                        <div class="venda-linha-1">
+                                            <span class="venda-id">#${venda.id}</span>
+                                            <span class="venda-data">${venda.data_venda_formatada}</span>
+                                            <span class="venda-valor">${venda.valor_restante_formatado}</span>
+                                        </div>
+                                        <div class="venda-linha-2">
+                                            <span class="venda-total">Total: ${venda.valor_total_formatado}</span>
+                                            <span class="venda-dias ${venda.dias_em_aberto > 30 ? 'dias-vencido' : ''}">
+                                                ${venda.dias_em_aberto} dias
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="resumo-selecao-multiplo">
+                            <div class="resumo-item">
+                                <span>Vendas Selecionadas: <strong id="contadorVendasSelecionadas">0</strong></span>
+                            </div>
+                            <div class="resumo-item">
+                                <span>Valor Total: <strong id="valorTotalSelecionado">R$ 0,00</strong></span>
+                            </div>
+                            <div class="resumo-actions">
+                                <button class="btn btn-success" onclick="abrirPagamentoMultiplo()" disabled id="btnPagarMultiplo">
+                                    🔄 Pagar Selecionadas
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.innerHTML = html;
+            }
+            
+            document.getElementById('nenhumaVendaAberta').style.display = 'none';
+        }
+
+        // Atualizar resumo do pagamento
+        function atualizarResumoPagamento(data) {
+            document.getElementById('resumoPagamento').innerHTML = `
+                <div class="summary-payment">
+                    <h4>📊 Resumo do Cliente</h4>
+                    <div class="summary-stats">
+                        <div class="summary-stat">
+                            <span class="stat-number">${data.quantidade_vendas}</span>
+                            <span class="stat-label">Vendas em Aberto</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="stat-number">${data.valor_total_devido_formatado}</span>
+                            <span class="stat-label">Total Devido</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('resumoPagamento').style.display = 'block';
+        }
+
+        // Seleção múltipla de vendas
+        function atualizarSelecaoVendas() {
+            const checkboxes = document.querySelectorAll('.venda-checkbox input[type="checkbox"]:checked');
+            const contador = checkboxes.length;
+            let valorTotal = 0;
+            
+            vendasSelecionadas = [];
+            
+            checkboxes.forEach(checkbox => {
+                const vendaId = parseInt(checkbox.value);
+                const valorRestante = parseFloat(checkbox.dataset.valorRestante);
+                
+                vendasSelecionadas.push(vendaId);
+                valorTotal += valorRestante;
+            });
+            
+            // Atualizar interface
+            document.getElementById('contadorVendasSelecionadas').textContent = contador;
+            document.getElementById('valorTotalSelecionado').textContent = formatar_moeda(valorTotal);
+            
+            const btnPagar = document.getElementById('btnPagarMultiplo');
+            btnPagar.disabled = contador === 0;
+        }
+
+        function selecionarTodasVendas() {
+            document.querySelectorAll('.venda-checkbox input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            atualizarSelecaoVendas();
+        }
+
+        function limparSelecaoVendas() {
+            document.querySelectorAll('.venda-checkbox input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            atualizarSelecaoVendas();
+        }
+
+        // Modal Seletor de Cliente
+        function abrirSeletorCliente() {
+            clientesFiltrados = [...clientes];
+            renderizarClientesModal();
+            abrirModal('modalSeletorCliente');
+        }
+
+        function fecharSeletorCliente() {
+            fecharModal('modalSeletorCliente');
+        }
+
+        function buscarClientesModal() {
+            const termo = document.getElementById('buscaCliente').value.toLowerCase();
+            
+            clientesFiltrados = clientes.filter(cliente => 
+                cliente.nome.toLowerCase().includes(termo) ||
+                (cliente.cpf && cliente.cpf.includes(termo)) ||
+                cliente.telefone.includes(termo)
+            );
+            
+            renderizarClientesModal();
+        }
+
+        function renderizarClientesModal() {
+            const container = document.getElementById('listaClientesModal');
+            
+            if (clientesFiltrados.length === 0) {
+                container.innerHTML = '<p class="empty-text">Nenhum cliente encontrado.</p>';
+                return;
+            }
+            
+            const html = clientesFiltrados.map(cliente => `
+                <div class="cliente-modal-item" onclick="selecionarClienteModal(${cliente.id})">
+                    <div class="cliente-info">
+                        <strong>${cliente.nome}</strong>
+                        <span>${cliente.telefone}</span>
+                        <span class="cliente-cpf">${cliente.cpf_formatado || 'CPF não informado'}</span>
+                    </div>
+                    <div class="cliente-saldo">
+                        <strong>${cliente.saldo_devedor_formatado}</strong>
+                        <span>em aberto</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+
+        function selecionarClienteModal(clienteId) {
+            document.getElementById('clientesPagamento').value = clienteId;
+            selecionarCliente();
+            fecharSeletorCliente();
+        }
+
+        // Pagamento Simples
+        function abrirPagamentoSimples(vendaId) {
+            const venda = vendasEmAbertoAtual.find(v => v.id === vendaId);
+            if (!venda) return;
+            
+            vendaAtualSimples = venda;
+            
+            // Informações da venda
+            document.getElementById('infoVendaPagamento').innerHTML = `
+                <div class="venda-payment-details">
+                    <h4>Venda #${venda.id} - ${clienteSelecionado.nome}</h4>
+                    <div class="payment-values">
+                        <div class="payment-value">
+                            <label>Total da Venda:</label>
+                            <span>${venda.valor_total_formatado}</span>
+                        </div>
+                        <div class="payment-value">
+                            <label>Já Pago:</label>
+                            <span>${venda.valor_pago_formatado || 'R$ 0,00'}</span>
+                        </div>
+                        <div class="payment-value destacado">
+                            <label>Valor Restante:</label>
+                            <span>${venda.valor_restante_formatado}</span>
+                        </div>
+                        <div class="payment-value">
+                            <label>Dias em Aberto:</label>
+                            <span class="${venda.dias_em_aberto > 30 ? 'vencido' : ''}">${venda.dias_em_aberto} dias</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Limpar formulário
+            document.getElementById('vendaIdSimples').value = vendaId;
+            document.getElementById('valorPagamentoSimples').value = venda.valor_restante.toFixed(2);
+            document.getElementById('formaPagamentoSimples').value = '';
+            document.getElementById('infoTrocoSimples').style.display = 'none';
+            document.querySelector('#formPagamentoSimples textarea[name="observacoes"]').value = '';
+            
+            abrirModal('modalPagamentoSimples');
+        }
+
+        function fecharModalPagamentoSimples() {
+            fecharModal('modalPagamentoSimples');
+            vendaAtualSimples = null;
+        }
+
+        function definirValorTotalSimples() {
+            if (vendaAtualSimples) {
+                document.getElementById('valorPagamentoSimples').value = vendaAtualSimples.valor_total.toFixed(2);
+                calcularTrocoSimples();
+            }
+        }
+
+        function definirValorRestanteSimples() {
+            if (vendaAtualSimples) {
+                document.getElementById('valorPagamentoSimples').value = vendaAtualSimples.valor_restante.toFixed(2);
+                calcularTrocoSimples();
+            }
+        }
+
+        function calcularTrocoSimples() {
+            const forma = document.getElementById('formaPagamentoSimples').value;
+            const valorPago = parseFloat(document.getElementById('valorPagamentoSimples').value) || 0;
+            const infoTroco = document.getElementById('infoTrocoSimples');
+            
+            if (forma === 'dinheiro' && vendaAtualSimples) {
+                const valorRestante = vendaAtualSimples.valor_restante;
+                const troco = valorPago - valorRestante;
+                
+                if (troco > 0) {
+                    document.getElementById('valorTrocoSimples').textContent = formatar_moeda(troco);
+                    infoTroco.style.display = 'block';
+                } else {
+                    infoTroco.style.display = 'none';
+                }
+            } else {
+                infoTroco.style.display = 'none';
+            }
+        }
+
+        function processarPagamentoSimples() {
+            const form = document.getElementById('formPagamentoSimples');
+            const formData = new FormData(form);
+            const dados = Object.fromEntries(formData);
+            
+            // Validações
+            if (!dados.valor_pago || parseFloat(dados.valor_pago) <= 0) {
+                mostrarNotificacao('Informe um valor válido', 'error');
+                return;
+            }
+            
+            if (!dados.forma_pagamento) {
+                mostrarNotificacao('Selecione a forma de pagamento', 'error');
+                return;
+            }
+            
+            if (parseFloat(dados.valor_pago) > vendaAtualSimples.valor_restante) {
+                if (!confirm('O valor informado é maior que o restante da venda. Confirma o pagamento?')) {
+                    return;
+                }
+            }
+            
+            mostrarLoading('Processando pagamento...');
+            
+            fetch('/api/pagamentos/simples', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dados)
+            })
+            .then(response => response.json())
+            .then(data => {
+                esconderLoading();
+                
+                if (data.sucesso) {
+                    mostrarNotificacao(data.mensagem || 'Pagamento processado com sucesso!', 'success');
+                    fecharModalPagamentoSimples();
+                    
+                    // Recarregar vendas em aberto
+                    carregarVendasEmAberto(clienteSelecionado.id);
+                    
+                    // Informar sobre impressão
+                    if (data.impressao) {
+                        if (data.impressao.sucesso) {
+                            mostrarNotificacao('Comprovante impresso automaticamente', 'info');
+                        } else {
+                            mostrarNotificacao(`Erro na impressão: ${data.impressao.mensagem}`, 'warning');
+                        }
+                    }
+                    
+                    // Mostrar troco se houver
+                    if (data.troco > 0) {
+                        mostrarNotificacao(`Troco: ${data.troco_formatado}`, 'info');
+                    }
+                } else {
+                    mostrarNotificacao(data.erro || 'Erro ao processar pagamento', 'error');
+                }
+            })
+            .catch(error => {
+                esconderLoading();
+                console.error('Erro:', error);
+                mostrarNotificacao('Erro ao processar pagamento', 'error');
+            });
+        }
+
+        // Pagamento Múltiplo
+        function abrirPagamentoMultiplo() {
+            if (vendasSelecionadas.length === 0) {
+                mostrarNotificacao('Selecione pelo menos uma venda', 'error');
+                return;
+            }
+            
+            const valorTotal = vendasSelecionadas.reduce((total, vendaId) => {
+                const venda = vendasEmAbertoAtual.find(v => v.id === vendaId);
+                return total + (venda ? venda.valor_restante : 0);
+            }, 0);
+            
+            // Informações do cliente
+            document.getElementById('infoClienteMultiplo').innerHTML = `
+                <div class="client-multiple-info">
+                    <h4>${clienteSelecionado.nome}</h4>
+                    <div class="multiple-summary">
+                        <div class="summary-item">
+                            <label>Vendas Selecionadas:</label>
+                            <span>${vendasSelecionadas.length}</span>
+                        </div>
+                        <div class="summary-item">
+                            <label>Valor Total Devido:</label>
+                            <span class="valor-destaque">${formatar_moeda(valorTotal)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Renderizar vendas selecionáveis
+            document.getElementById('vendasSelecionaveis').innerHTML = vendasSelecionadas.map(vendaId => {
+                const venda = vendasEmAbertoAtual.find(v => v.id === vendaId);
+                return `
+                    <div class="venda-multipla-item">
+                        <span class="venda-id">#${venda.id}</span>
+                        <span class="venda-data">${venda.data_venda_formatada}</span>
+                        <span class="venda-valor">${venda.valor_restante_formatado}</span>
+                    </div>
+                `;
+            }).join('');
+            
+            // Configurar formulário
+            document.getElementById('clienteIdMultiplo').value = clienteSelecionado.id;
+            document.getElementById('valorPagamentoMultiplo').value = valorTotal.toFixed(2);
+            document.getElementById('formaPagamentoMultiplo').value = '';
+            document.getElementById('infoDiferencaMultiplo').style.display = 'none';
+            
+            // Atualizar resumo
+            document.getElementById('quantidadeVendasSelecionadas').textContent = vendasSelecionadas.length;
+            document.getElementById('valorTotalDevido').textContent = formatar_moeda(valorTotal);
+            
+            abrirModal('modalPagamentoMultiplo');
+        }
+
+        function fecharModalPagamentoMultiplo() {
+            fecharModal('modalPagamentoMultiplo');
+        }
+
+        function definirValorTotalMultiplo() {
+            const valorTotal = vendasSelecionadas.reduce((total, vendaId) => {
+                const venda = vendasEmAbertoAtual.find(v => v.id === vendaId);
+                return total + (venda ? venda.valor_restante : 0);
+            }, 0);
+            
+            document.getElementById('valorPagamentoMultiplo').value = valorTotal.toFixed(2);
+            calcularDiferencaMultiplo();
+        }
+
+        function calcularDiferencaMultiplo() {
+            const valorPago = parseFloat(document.getElementById('valorPagamentoMultiplo').value) || 0;
+            const valorDevido = vendasSelecionadas.reduce((total, vendaId) => {
+                const venda = vendasEmAbertoAtual.find(v => v.id === vendaId);
+                return total + (venda ? venda.valor_restante : 0);
+            }, 0);
+            
+            const diferenca = valorPago - valorDevido;
+            const infoDiferenca = document.getElementById('infoDiferencaMultiplo');
+            
+            if (Math.abs(diferenca) >= 0.01) {
+                let classe = diferenca > 0 ? 'sobra' : 'falta';
+                let texto = diferenca > 0 
+                    ? `Sobra de ${formatar_moeda(diferenca)} será criada como nova venda para o cliente.`
+                    : `Falta ${formatar_moeda(Math.abs(diferenca))} para quitar todas as vendas selecionadas.`;
+                
+                infoDiferenca.innerHTML = `
+                    <div class="diferenca-${classe}">
+                        <strong>${diferenca > 0 ? '💰 Sobra de Dinheiro' : '⚠️ Valor Insuficiente'}</strong>
+                        <p>${texto}</p>
+                    </div>
+                `;
+                infoDiferenca.style.display = 'block';
+            } else {
+                infoDiferenca.style.display = 'none';
+            }
+        }
+
+        function processarPagamentoMultiplo() {
+            const form = document.getElementById('formPagamentoMultiplo');
+            const formData = new FormData(form);
+            const dados = Object.fromEntries(formData);
+            
+            // Validações
+            if (vendasSelecionadas.length === 0) {
+                mostrarNotificacao('Selecione pelo menos uma venda', 'error');
+                return;
+            }
+            
+            if (!dados.valor_pago || parseFloat(dados.valor_pago) <= 0) {
+                mostrarNotificacao('Informe um valor válido', 'error');
+                return;
+            }
+            
+            if (!dados.forma_pagamento) {
+                mostrarNotificacao('Selecione a forma de pagamento', 'error');
+                return;
+            }
+            
+            // Adicionar vendas selecionadas aos dados
+            dados.vendas_ids = vendasSelecionadas;
+            
+            mostrarLoading('Processando pagamento múltiplo...');
+            
+            fetch('/api/pagamentos/multiplo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dados)
+            })
+            .then(response => response.json())
+            .then(data => {
+                esconderLoading();
+                
+                if (data.sucesso) {
+                    mostrarNotificacao(data.mensagem || 'Pagamento múltiplo processado com sucesso!', 'success');
+                    fecharModalPagamentoMultiplo();
+                    
+                    // Recarregar vendas em aberto
+                    carregarVendasEmAberto(clienteSelecionado.id);
+                    
+                    // Limpar seleção
+                    vendasSelecionadas = [];
+                    
+                    // Informar sobre nova venda criada
+                    if (data.sobrou_saldo) {
+                        mostrarNotificacao(`Nova venda criada com saldo de ${data.valor_saldo_formatado}`, 'info');
+                    }
+                } else {
+                    mostrarNotificacao(data.erro || 'Erro ao processar pagamento múltiplo', 'error');
+                }
+            })
+            .catch(error => {
+                esconderLoading();
+                console.error('Erro:', error);
+                mostrarNotificacao('Erro ao processar pagamento múltiplo', 'error');
+            });
+        }
+
+        // Carregar venda específica para pagamento
+        function carregarVendaParaPagamento(vendaId) {
+            mostrarLoading('Carregando venda...');
+            
+            fetch(`/api/vendas/${vendaId}`)
+                .then(response => response.json())
+                .then(data => {
+                    esconderLoading();
+                    
+                    if (data.sucesso && (data.venda.status === 'aberta' || data.venda.status === 'vencida')) {
+                        // Selecionar o cliente
+                        document.getElementById('clientesPagamento').value = data.venda.cliente_id;
+                        selecionarCliente();
+                        
+                        // Após carregar as vendas, abrir pagamento da venda específica
+                        setTimeout(() => {
+                            abrirPagamentoSimples(vendaId);
+                        }, 500);
+                    } else {
+                        mostrarNotificacao('Venda não encontrada ou já foi paga', 'error');
+                    }
+                })
+                .catch(error => {
+                    esconderLoading();
+                    console.error('Erro:', error);
+                    mostrarNotificacao('Erro ao carregar venda', 'error');
+                });
+        }
+
+        // Funções auxiliares
+        function verDetalhesVenda(vendaId) {
+            window.location.href = `/vendas?venda_id=${vendaId}`;
+        }
+
+        function mostrarLoadingPagamentos() {
+            document.getElementById('loadingPagamentos').style.display = 'block';
+            document.getElementById('vendasEmAberto').innerHTML = '';
+            document.getElementById('nenhumaVendaAberta').style.display = 'none';
+        }
+
+        function esconderLoadingPagamentos() {
+            document.getElementById('loadingPagamentos').style.display = 'none';
+        }
+
+        function mostrarEstadoVazioVendas() {
+            document.getElementById('vendasEmAberto').innerHTML = '';
+            document.getElementById('nenhumaVendaAberta').style.display = 'block';
+            document.getElementById('resumoPagamento').style.display = 'none';
+        }
+
+        // Função para formatar moeda
+        function formatar_moeda(valor) {
+            try {
+                return new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                }).format(valor);
+            } catch {
+                return `R$ ${valor.toFixed(2).replace('.', ',')}`;
+            }
+        }
+
+        // Configurar eventos
+        document.addEventListener('input', function(e) {
+            if (e.target.id === 'valorPagamentoSimples') {
+                calcularTrocoSimples();
+            } else if (e.target.id === 'valorPagamentoMultiplo') {
+                calcularDiferencaMultiplo();
+            }
+        });
+    </script>
+</body>
+</html>

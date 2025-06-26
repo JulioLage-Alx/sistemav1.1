@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios - {{ config.nome_empresa }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="nav-container">
+            <a href="{{ url_for('dashboard') }}" class="logo">🥩 {{ config.nome_empresa }}</a>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="nav-item"><a href="{{ url_for('clientes') }}">Clientes</a></li>
+                    <li class="nav-item"><a href="{{ url_for('vendas') }}">Vendas</a></li>
+                    <li class="nav-item"><a href="{{ url_for('pagamentos') }}">Pagamentos</a></li>
+                    <li class="nav-item"><a href="{{ url_for('relatorios') }}" class="active">Relatórios</a></li>
+                    <li class="nav-item"><a href="{{ url_for('logout') }}" class="logout">Sair</a></li>
+                </ul>
+            </nav>
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+        </div>
+    </header>
+
+    <!-- Container Principal -->
+    <div class="main-container">
+        <!-- Cabeçalho da Página -->
+        <div class="page-header">
+            <h1>📊 Relatórios e Análises</h1>
+            <div class="page-actions">
+                <button class="btn btn-secondary" onclick="atualizarDados()">
+                    <span>🔄</span> Atualizar Dados
+                </button>
+            </div>
+        </div>
+
+        <!-- Cards de Relatórios Rápidos -->
+        <div class="reports-grid">
+            <div class="report-card" onclick="gerarRelatorioVendas()">
+                <div class="report-icon">🛒</div>
+                <div class="report-content">
+                    <h3>Relatório de Vendas</h3>
+                    <p>Exportar vendas por período, cliente ou status</p>
+                    <div class="report-actions">
+                        <button class="btn-small">Gerar Relatório</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card" onclick="gerarRelatorioInadimplentes()">
+                <div class="report-icon">⚠️</div>
+                <div class="report-content">
+                    <h3>Clientes Inadimplentes</h3>
+                    <p>Lista de clientes com vendas vencidas</p>
+                    <div class="report-actions">
+                        <button class="btn-small">Gerar Relatório</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card" onclick="gerarRelatorioClientes()">
+                <div class="report-icon">👥</div>
+                <div class="report-content">
+                    <h3>Relatório de Clientes</h3>
+                    <p>Lista completa de clientes e seus dados</p>
+                    <div class="report-actions">
+                        <button class="btn-small">Gerar Relatório</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card" onclick="gerarRelatorioPagamentos()">
+                <div class="report-icon">💰</div>
+                <div class="report-content">
+                    <h3>Relatório de Pagamentos</h3>
+                    <p>Histórico de pagamentos por período</p>
+                    <div class="report-actions">
+                        <button class="btn-small">Gerar Relatório</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos e Análises -->
+        <div class="analytics-section">
+            <h2 class="section-title">📈 Análises Gráficas</h2>
+            
+            <div class="analytics-controls">
+                <div class="control-group">
+                    <label>Período de Análise:</label>
+                    <select id="periodoAnalise" onchange="atualizarGraficos()">
+                        <option value="7">Últimos 7 dias</option>
+                        <option value="30" selected>Últimos 30 dias</option>
+                        <option value="90">Últimos 90 dias</option>
+                        <option value="365">Último ano</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label>Data Início:</label>
+                    <input type="date" id="dataInicioAnalise" onchange="atualizarGraficos()">
+                </div>
+                
+                <div class="control-group">
+                    <label>Data Fim:</label>
+                    <input type="date" id="dataFimAnalise" onchange="atualizarGraficos()">
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-card">
+                    <h3>Vendas por Dia</h3>
+                    <div class="chart-controls">
+                        <button class="chart-toggle active" onclick="alternarTipoGrafico('vendas', 'line')" data-chart="vendas" data-type="line">Linha</button>
+                        <button class="chart-toggle" onclick="alternarTipoGrafico('vendas', 'bar')" data-chart="vendas" data-type="bar">Barras</button>
+                    </div>
+                    <canvas id="chartVendasPorDia"></canvas>
+                </div>
+                
+                <div class="chart-card">
+                    <h3>Formas de Pagamento</h3>
+                    <div class="chart-controls">
+                        <button class="chart-toggle active" onclick="alternarTipoGrafico('pagamentos', 'doughnut')" data-chart="pagamentos" data-type="doughnut">Rosca</button>
+                        <button class="chart-toggle" onclick="alternarTipoGrafico('pagamentos', 'pie')" data-chart="pagamentos" data-type="pie">Pizza</button>
+                    </div>
+                    <canvas id="chartFormasPagamento"></canvas>
+                </div>
+                
+                <div class="chart-card">
+                    <h3>Status das Vendas</h3>
+                    <canvas id="chartStatusVendas"></canvas>
+                </div>
+                
+                <div class="chart-card">
+                    <h3>Top 10 Clientes</h3>
+                    <canvas id="chartTopClientes"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estatísticas Detalhadas -->
+        <div class="stats-section">
+            <h2 class="section-title">📋 Estatísticas Detalhadas</h2>
+            
+            <div class="stats-grid" id="estatisticasDetalhadas">
+                <!-- Carregado via JavaScript -->
+            </div>
+        </div>
+
+        <!-- Alertas e Indicadores -->
+        <div class="indicators-section">
+            <h2 class="section-title">🚨 Indicadores de Negócio</h2>
+            
+            <div class="indicators-grid" id="indicadoresNegocio">
+                <!-- Carregado via JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Gerador de Relatórios -->
+    <div id="modalRelatorio" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3 id="tituloModalRelatorio">Gerar Relatório</h3>
+                <button class="modal-close" onclick="fecharModalRelatorio()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formRelatorio">
+                    <input type="hidden" id="tipoRelatorio" name="tipo">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Data Início:</label>
+                            <input type="date" id="dataInicioRelatorio" name="data_inicio">
+                        </div>
+                        <div class="form-group">
+                            <label>Data Fim:</label>
+                            <input type="date" id="dataFimRelatorio" name="data_fim">
+                        </div>
+                    </div>
+                    
+                    <div id="filtrosEspecificos" class="filtros-especificos">
+                        <!-- Filtros específicos por tipo de relatório -->
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Formato de Exportação:</label>
+                            <select id="formatoExportacao" name="formato">
+                                <option value="excel">📊 Excel (.xlsx)</option>
+                                <option value="csv">📄 CSV (.csv)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Ordenação:</label>
+                            <select id="ordenacaoRelatorio" name="ordenacao">
+                                <option value="data_desc">Data (Mais Recente)</option>
+                                <option value="data_asc">Data (Mais Antiga)</option>
+                                <option value="valor_desc">Valor (Maior)</option>
+                                <option value="valor_asc">Valor (Menor)</option>
+                                <option value="nome">Nome</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="preview-section">
+                    <h4>👁️ Prévia dos Dados</h4>
+                    <div id="previewDados" class="preview-container">
+                        <p class="preview-empty">Configure os filtros e clique em "Visualizar" para ver uma prévia dos dados.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="fecharModalRelatorio()" class="btn btn-secondary">Cancelar</button>
+                <button type="button" onclick="visualizarPreview()" class="btn btn-info">👁️ Visualizar</button>
+                <button type="button" onclick="exportarRelatorio()" class="btn btn-primary">
+                    <span id="btnExportarTexto">📊 Exportar Relatório</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Carregando...</div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        let chartsInstances = {};
+        let dadosAnalise = null;
+
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', function() {
+            configurarDatasIniciais();
+            carregarDadosAnalise();
+            carregarEstatisticasDetalhadas();
+            carregarIndicadoresNegocio();
+        });
+
+        // Configurar datas iniciais
+        function configurarDatasIniciais() {
+            const hoje = new Date();
+            const dataFim = hoje.toISOString().split('T')[0];
+            const dataInicio = new Date(hoje.setDate(hoje.getDate() - 30)).toISOString().split('T')[0];
+            
+            document.getElementById('dataInicioAnalise').value = dataInicio;
+            document.getElementById('dataFimAnalise').value = dataFim;
+        }
+
+        // Carregar dados para análise
+        function carregarDadosAnalise() {
+            const periodo = document.getElementById('periodoAnalise').value;
+            
+            mostrarLoading('Carregando dados para análise...');
+            
+            fetch(`/api/graficos/${periodo}`)
+                .then(response => response.json())
+                .then(data => {
+                    esconderLoading();
+                    
+                    if (data.sucesso) {
+                        dadosAnalise = data.graficos;
+                        criarGraficos();
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao carregar dados', 'error');
+                    }
+                })
+                .catch(error => {
+                    esconderLoading();
+                    console.error('Erro:', error);
+                    mostrarNotificacao('Erro ao carregar dados para análise', 'error');
+                });
+        }
+
+        // Atualizar gráficos
+        function atualizarGraficos() {
+            // Destruir gráficos existentes
+            Object.values(chartsInstances).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            chartsInstances = {};
+            
+            // Recarregar dados
+            carregarDadosAnalise();
+        }
+
+        // Criar gráficos
+        function criarGraficos() {
+            if (!dadosAnalise) return;
+
+            // Gráfico de Vendas por Dia
+            const ctxVendas = document.getElementById('chartVendasPorDia').getContext('2d');
+            chartsInstances.vendas = new Chart(ctxVendas, {
+                type: 'line',
+                data: {
+                    labels: dadosAnalise.vendas_por_dia?.labels || [],
+                    datasets: [{
+                        label: 'Valor das Vendas (R$)',
+                        data: dadosAnalise.vendas_por_dia?.valores || [],
+                        borderColor: '#dc2626',
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Quantidade de Vendas',
+                        data: dadosAnalise.vendas_por_dia?.quantidades || [],
+                        borderColor: '#059669',
+                        backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Evolução das Vendas'
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Valor (R$)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R$ ' + value.toLocaleString('pt-BR');
+                                }
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Quantidade'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    }
+                }
+            });
+
+            // Gráfico de Formas de Pagamento
+            const ctxPagamentos = document.getElementById('chartFormasPagamento').getContext('2d');
+            chartsInstances.pagamentos = new Chart(ctxPagamentos, {
+                type: 'doughnut',
+                data: {
+                    labels: dadosAnalise.formas_pagamento?.labels || [],
+                    datasets: [{
+                        data: dadosAnalise.formas_pagamento?.valores || [],
+                        backgroundColor: [
+                            '#dc2626',
+                            '#059669',
+                            '#2563eb',
+                            '#7c3aed',
+                            '#ea580c'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribuição por Forma de Pagamento'
+                        },
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: R$ ${value.toLocaleString('pt-BR')} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Criar outros gráficos simulados
+            criarGraficoStatusVendas();
+            criarGraficoTopClientes();
+        }
+
+        // Gráfico de Status das Vendas
+        function criarGraficoStatusVendas() {
+            const ctx = document.getElementById('chartStatusVendas').getContext('2d');
+            chartsInstances.status = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Em Aberto', 'Pagas', 'Vencidas', 'Canceladas'],
+                    datasets: [{
+                        label: 'Quantidade',
+                        data: [45, 120, 15, 3],
+                        backgroundColor: [
+                            '#f59e0b',
+                            '#10b981',
+                            '#ef4444',
+                            '#6b7280'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Status das Vendas'
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Quantidade de Vendas'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico Top 10 Clientes
+        function criarGraficoTopClientes() {
+            const ctx = document.getElementById('chartTopClientes').getContext('2d');
+            chartsInstances.clientes = new Chart(ctx, {
+                type: 'horizontalBar',
+                data: {
+                    labels: ['João Silva', 'Maria Santos', 'Pedro Costa', 'Ana Lima', 'Carlos Oliveira'],
+                    datasets: [{
+                        label: 'Valor Total (R$)',
+                        data: [1500, 1200, 980, 850, 720],
+                        backgroundColor: '#dc2626'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Top 5 Clientes por Valor'
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Valor Total (R$)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return 'R$ ' + value.toLocaleString('pt-BR');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Alternar tipo de gráfico
+        function alternarTipoGrafico(chartName, type) {
+            // Atualizar botões
+            document.querySelectorAll(`[data-chart="${chartName}"]`).forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-chart="${chartName}"][data-type="${type}"]`).classList.add('active');
+
+            // Recriar gráfico com novo tipo
+            if (chartsInstances[chartName]) {
+                const chart = chartsInstances[chartName];
+                chart.config.type = type;
+                chart.update();
+            }
+        }
+
+        // Carregar estatísticas detalhadas
+        function carregarEstatisticasDetalhadas() {
+            // Simulando dados - você pode buscar da API
+            const stats = [
+                { titulo: 'Faturamento Médio Diário', valor: 'R$ 1.245,50', icone: '💰', variacao: '+12%' },
+                { titulo: 'Ticket Médio', valor: 'R$ 85,30', icone: '🎯', variacao: '+5%' },
+                { titulo: 'Taxa de Inadimplência', valor: '8,5%', icone: '⚠️', variacao: '-2%' },
+                { titulo: 'Clientes Ativos', valor: '127', icone: '👥', variacao: '+8%' },
+                { titulo: 'Tempo Médio de Pagamento', valor: '18 dias', icone: '⏱️', variacao: '-3 dias' },
+                { titulo: 'Crescimento Mensal', valor: '15,2%', icone: '📈', variacao: '+3%' }
+            ];
+
+            const html = stats.map(stat => `
+                <div class="stat-detailed-card">
+                    <div class="stat-icon">${stat.icone}</div>
+                    <div class="stat-content">
+                        <h4>${stat.titulo}</h4>
+                        <div class="stat-value">${stat.valor}</div>
+                        <div class="stat-change ${stat.variacao.startsWith('+') ? 'positive' : stat.variacao.startsWith('-') ? 'negative' : 'neutral'}">
+                            ${stat.variacao}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('estatisticasDetalhadas').innerHTML = html;
+        }
+
+        // Carregar indicadores de negócio
+        function carregarIndicadoresNegocio() {
+            const indicadores = [
+                {
+                    titulo: 'Vendas Vencidas',
+                    valor: '3 vendas',
+                    descricao: 'R$ 890,00 em atraso',
+                    status: 'alert',
+                    acao: 'Ver Detalhes'
+                },
+                {
+                    titulo: 'Limite de Crédito',
+                    valor: '2 clientes',
+                    descricao: 'Próximos do limite',
+                    status: 'warning',
+                    acao: 'Verificar'
+                },
+                {
+                    titulo: 'Meta Mensal',
+                    valor: '78%',
+                    descricao: 'R$ 9.780 de R$ 12.500',
+                    status: 'good',
+                    acao: 'Acompanhar'
+                },
+                {
+                    titulo: 'Backup Sistema',
+                    valor: 'Há 2 dias',
+                    descricao: 'Último backup realizado',
+                    status: 'warning',
+                    acao: 'Criar Backup'
+                }
+            ];
+
+            const html = indicadores.map(ind => `
+                <div class="indicator-card ${ind.status}">
+                    <div class="indicator-header">
+                        <h4>${ind.titulo}</h4>
+                        <span class="indicator-status ${ind.status}"></span>
+                    </div>
+                    <div class="indicator-value">${ind.valor}</div>
+                    <div class="indicator-description">${ind.descricao}</div>
+                    <button class="indicator-action" onclick="executarAcaoIndicador('${ind.titulo.toLowerCase().replace(/\s+/g, '_')}')">${ind.acao}</button>
+                </div>
+            `).join('');
+
+            document.getElementById('indicadoresNegocio').innerHTML = html;
+        }
+
+        // Executar ação de indicador
+        function executarAcaoIndicador(tipo) {
+            switch(tipo) {
+                case 'vendas_vencidas':
+                    window.location.href = '/vendas?status=vencida';
+                    break;
+                case 'limite_de_crédito':
+                    window.location.href = '/clientes?filtro=limite_proximo';
+                    break;
+                case 'meta_mensal':
+                    mostrarNotificacao('Meta mensal: 78% alcançada!', 'info');
+                    break;
+                case 'backup_sistema':
+                    criarBackupSistema();
+                    break;
+            }
+        }
+
+        // Criar backup do sistema
+        function criarBackupSistema() {
+            mostrarLoading('Criando backup do sistema...');
+            
+            fetch('/api/backup/criar')
+                .then(response => response.json())
+                .then(data => {
+                    esconderLoading();
+                    if (data.sucesso) {
+                        mostrarNotificacao(data.mensagem, 'success');
+                        carregarIndicadoresNegocio(); // Atualizar indicadores
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao criar backup', 'error');
+                    }
+                })
+                .catch(error => {
+                    esconderLoading();
+                    console.error('Erro:', error);
+                    mostrarNotificacao('Erro ao criar backup', 'error');
+                });
+        }
+
+        // Atualizar todos os dados
+        function atualizarDados() {
+            mostrarLoading('Atualizando dados...');
+            
+            Promise.all([
+                carregarDadosAnalise(),
+                carregarEstatisticasDetalhadas(),
+                carregarIndicadoresNegocio()
+            ]).then(() => {
+                esconderLoading();
+                mostrarNotificacao('Dados atualizados com sucesso!', 'success');
+            }).catch(error => {
+                esconderLoading();
+                console.error('Erro:', error);
+                mostrarNotificacao('Erro ao atualizar dados', 'error');
+            });
+        }
+
+        // Funções de geração de relatórios
+        function gerarRelatorioVendas() {
+            abrirModalRelatorio('vendas', 'Relatório de Vendas');
+        }
+
+        function gerarRelatorioInadimplentes() {
+            mostrarLoading('Gerando relatório de inadimplentes...');
+            window.open('/api/relatorios/inadimplentes/exportar?formato=excel', '_blank');
+            esconderLoading();
+        }
+
+        function gerarRelatorioClientes() {
+            mostrarLoading('Gerando relatório de clientes...');
+            
+            // Gerar relatório de clientes (implementar endpoint se necessário)
+            const params = new URLSearchParams({
+                formato: 'excel'
+            });
+            
+            window.open(`/api/relatorios/vendas/exportar?${params}`, '_blank');
+            esconderLoading();
+        }
+
+        function gerarRelatorioPagamentos() {
+            abrirModalRelatorio('pagamentos', 'Relatório de Pagamentos');
+        }
+
+        // Modal de relatórios
+        function abrirModalRelatorio(tipo, titulo) {
+            document.getElementById('tituloModalRelatorio').textContent = titulo;
+            document.getElementById('tipoRelatorio').value = tipo;
+            
+            // Configurar datas padrão
+            const hoje = new Date();
+            const dataFim = hoje.toISOString().split('T')[0];
+            const dataInicio = new Date(hoje.setDate(hoje.getDate() - 30)).toISOString().split('T')[0];
+            
+            document.getElementById('dataInicioRelatorio').value = dataInicio;
+            document.getElementById('dataFimRelatorio').value = dataFim;
+            
+            // Configurar filtros específicos
+            configurarFiltrosEspecificos(tipo);
+            
+            // Limpar preview
+            document.getElementById('previewDados').innerHTML = '<p class="preview-empty">Configure os filtros e clique em "Visualizar" para ver uma prévia dos dados.</p>';
+            
+            abrirModal('modalRelatorio');
+        }
+
+        function fecharModalRelatorio() {
+            fecharModal('modalRelatorio');
+        }
+
+        function configurarFiltrosEspecificos(tipo) {
+            const container = document.getElementById('filtrosEspecificos');
+            
+            switch(tipo) {
+                case 'vendas':
+                    container.innerHTML = `
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Status:</label>
+                                <select name="status">
+                                    <option value="">Todos</option>
+                                    <option value="aberta">Em Aberto</option>
+                                    <option value="paga">Pagas</option>
+                                    <option value="vencida">Vencidas</option>
+                                    <option value="cancelada">Canceladas</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Cliente:</label>
+                                <select name="cliente_id">
+                                    <option value="">Todos os clientes</option>
+                                    <!-- Carregar clientes via JS se necessário -->
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                case 'pagamentos':
+                    container.innerHTML = `
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Forma de Pagamento:</label>
+                                <select name="forma_pagamento">
+                                    <option value="">Todas</option>
+                                    <option value="dinheiro">Dinheiro</option>
+                                    <option value="cartao">Cartão</option>
+                                    <option value="pix">PIX</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Valor Mínimo:</label>
+                                <input type="number" name="valor_minimo" step="0.01" placeholder="R$ 0,00">
+                            </div>
+                        </div>
+                    `;
+                    break;
+                default:
+                    container.innerHTML = '';
+                    break;
+            }
+        }
+
+        function visualizarPreview() {
+            const tipo = document.getElementById('tipoRelatorio').value;
+            
+            mostrarLoading('Carregando prévia...');
+            
+            // Simular dados de preview
+            setTimeout(() => {
+                const previewHtml = `
+                    <div class="preview-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Data</th>
+                                    <th>Cliente</th>
+                                    <th>Valor</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>#001</td>
+                                    <td>25/06/2025</td>
+                                    <td>João Silva</td>
+                                    <td>R$ 150,00</td>
+                                    <td>Pago</td>
+                                </tr>
+                                <tr>
+                                    <td>#002</td>
+                                    <td>24/06/2025</td>
+                                    <td>Maria Santos</td>
+                                    <td>R$ 89,50</td>
+                                    <td>Em Aberto</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="5" class="preview-more">... e mais 45 registros</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="preview-summary">
+                        <strong>Total de registros: 47 | Valor total: R$ 3.245,50</strong>
+                    </div>
+                `;
+                
+                document.getElementById('previewDados').innerHTML = previewHtml;
+                esconderLoading();
+            }, 1000);
+        }
+
+        function exportarRelatorio() {
+            const form = document.getElementById('formRelatorio');
+            const formData = new FormData(form);
+            const params = new URLSearchParams(formData);
+            
+            const tipo = document.getElementById('tipoRelatorio').value;
+            
+            mostrarLoading('Gerando relatório...');
+            
+            let url;
+            switch(tipo) {
+                case 'vendas':
+                    url = `/api/relatorios/vendas/exportar?${params}`;
+                    break;
+                case 'pagamentos':
+                    url = `/api/relatorios/vendas/exportar?${params}`; // Adaptar quando criar endpoint específico
+                    break;
+                default:
+                    url = `/api/relatorios/vendas/exportar?${params}`;
+                    break;
+            }
+            
+            // Abrir link de download
+            window.open(url, '_blank');
+            
+            setTimeout(() => {
+                esconderLoading();
+                fecharModalRelatorio();
+                mostrarNotificacao('Relatório gerado com sucesso!', 'success');
+            }, 2000);
+        }
+
+        // Função para formatar moeda
+        function formatar_moeda(valor) {
+            try {
+                return new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                }).format(valor);
+            } catch {
+                return `R$ ${valor.toFixed(2).replace('.', ',')}`;
+            }
+        }
+    </script>
+</body>
+</html>
