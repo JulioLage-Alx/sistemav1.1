@@ -59,28 +59,28 @@
                 <div class="card-icon">👥</div>
                 <div class="card-title">Clientes</div>
                 <div class="card-description">Gerenciar cadastro de clientes</div>
-                <div class="card-number">{{ stats.total_clientes or 0 }}</div>
+                <div class="card-number">{{ stats.get('total_clientes', 0) }}</div>
             </div>
 
             <div class="card" onclick="navegarPara('vendas')">
                 <div class="card-icon">🛒</div>
                 <div class="card-title">Vendas do Mês</div>
-                <div class="card-description">{{ stats.vendas_mes.total or 0 }} vendas realizadas</div>
-                <div class="card-number">{{ stats.vendas_mes.valor_total_formatado or 'R$ 0,00' }}</div>
+                <div class="card-description">{{ stats.get('vendas_mes', {}).get('total', 0) }} vendas realizadas</div>
+                <div class="card-number">{{ stats.get('vendas_mes', {}).get('valor_total_formatado', 'R$ 0,00') }}</div>
             </div>
 
             <div class="card vendas-abertas" onclick="navegarPara('pagamentos')">
                 <div class="card-icon">💰</div>
                 <div class="card-title">Vendas em Aberto</div>
-                <div class="card-description">{{ stats.vendas_abertas.total or 0 }} vendas pendentes</div>
-                <div class="card-number">{{ stats.vendas_abertas.valor_total_formatado or 'R$ 0,00' }}</div>
+                <div class="card-description">{{ stats.get('vendas_abertas', {}).get('total', 0) }} vendas pendentes</div>
+                <div class="card-number">{{ stats.get('vendas_abertas', {}).get('valor_total_formatado', 'R$ 0,00') }}</div>
             </div>
 
             <div class="card vendas-vencidas" onclick="mostrarVendasVencidas()">
                 <div class="card-icon">⚠️</div>
                 <div class="card-title">Vendas Vencidas</div>
-                <div class="card-description">{{ stats.vendas_vencidas.total or 0 }} vendas atrasadas</div>
-                <div class="card-number">{{ stats.vendas_vencidas.valor_total_formatado or 'R$ 0,00' }}</div>
+                <div class="card-description">{{ stats.get('vendas_vencidas', {}).get('total', 0) }} vendas atrasadas</div>
+                <div class="card-number">{{ stats.get('vendas_vencidas', {}).get('valor_total_formatado', 'R$ 0,00') }}</div>
             </div>
         </div>
 
@@ -294,10 +294,10 @@
             new Chart(ctxVendas, {
                 type: 'line',
                 data: {
-                    labels: {{ graficos.vendas_por_dia.labels | tojsonhtml }},
+                    labels: {{ graficos.get('vendas_por_dia', {}).get('labels', []) | tojson }},
                     datasets: [{
                         label: 'Valor das Vendas',
-                        data: {{ graficos.vendas_por_dia.valores | tojsonhtml }},
+                        data: {{ graficos.get('vendas_por_dia', {}).get('valores', []) | tojson }},
                         borderColor: '#dc2626',
                         backgroundColor: 'rgba(220, 38, 38, 0.1)',
                         tension: 0.4
@@ -329,9 +329,9 @@
             new Chart(ctxPagamento, {
                 type: 'doughnut',
                 data: {
-                    labels: {{ graficos.formas_pagamento.labels | tojsonhtml }},
+                    labels: {{ graficos.get('formas_pagamento', {}).get('labels', []) | tojson }},
                     datasets: [{
-                        data: {{ graficos.formas_pagamento.valores | tojsonhtml }},
+                        data: {{ graficos.get('formas_pagamento', {}).get('valores', []) | tojson }},
                         backgroundColor: [
                             '#dc2626',
                             '#ef4444',
@@ -348,6 +348,52 @@
                         },
                         legend: {
                             position: 'bottom'
+                        }
+                    }
+                }
+            });
+            {% else %}
+            // Gráficos com dados vazios
+            const ctxVendas = document.getElementById('vendasPorDiaChart').getContext('2d');
+            new Chart(ctxVendas, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Valor das Vendas',
+                        data: [],
+                        borderColor: '#dc2626',
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Vendas por Dia (Sem dados)'
+                        }
+                    }
+                }
+            });
+
+            const ctxPagamento = document.getElementById('formasPagamentoChart').getContext('2d');
+            new Chart(ctxPagamento, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Sem dados'],
+                    datasets: [{
+                        data: [1],
+                        backgroundColor: ['#e5e7eb']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Formas de Pagamento (Sem dados)'
                         }
                     }
                 }
@@ -377,6 +423,18 @@
         }
 
         // Funções dos botões de ação rápida
+        function novaVenda() {
+            window.location.href = '/vendas';
+        }
+
+        function novoCliente() {
+            window.location.href = '/clientes';
+        }
+
+        function processarPagamento() {
+            window.location.href = '/pagamentos';
+        }
+
         function testarImpressora() {
             mostrarLoading('Testando impressora...');
             
@@ -432,6 +490,61 @@
 
         function mostrarVendasVencidas() {
             navegarPara('vendas?status=vencida');
+        }
+
+        function mostrarDetalhesVendasVencidas() {
+            navegarPara('vendas?status=vencida');
+        }
+
+        function mostrarClientesLimite() {
+            navegarPara('clientes?filtro=limite_proximo');
+        }
+
+        // Carregar clientes para o modal
+        function carregarClientes() {
+            fetch('/api/clientes?limite=100')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.sucesso) {
+                        const select = document.getElementById('clienteVenda');
+                        if (select) {
+                            select.innerHTML = '<option value="">Selecione um cliente...</option>';
+                            data.clientes.forEach(cliente => {
+                                const option = document.createElement('option');
+                                option.value = cliente.id;
+                                option.textContent = `${cliente.nome} - ${cliente.telefone}`;
+                                select.appendChild(option);
+                            });
+                        }
+                    }
+                })
+                .catch(error => console.error('Erro ao carregar clientes:', error));
+        }
+
+        // Funções de modal (placeholder - implementar conforme necessário)
+        function adicionarItem() {
+            // Implementar adição de item
+            console.log('Adicionar item');
+        }
+
+        function removerItem(button) {
+            // Implementar remoção de item
+            console.log('Remover item');
+        }
+
+        function calcularTotalVenda() {
+            // Implementar cálculo do total
+            console.log('Calcular total');
+        }
+
+        function salvarVenda() {
+            // Implementar salvamento de venda
+            console.log('Salvar venda');
+        }
+
+        function salvarCliente() {
+            // Implementar salvamento de cliente
+            console.log('Salvar cliente');
         }
     </script>
 </body>

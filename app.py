@@ -53,6 +53,7 @@ def logout():
     return redirect(url_for('login'))
 
 # ROTA PRINCIPAL - DASHBOARD
+# ROTA PRINCIPAL - DASHBOARD (CORRIGIDA)
 @app.route('/')
 @login_required
 def dashboard():
@@ -62,9 +63,36 @@ def dashboard():
         alertas_result = ClienteBusiness.get_alertas_inadimplencia()
         graficos_result = RelatoriosBusiness.get_dados_graficos(30)
         
-        stats = stats_result.get('estatisticas', {}) if stats_result['sucesso'] else {}
-        alertas = alertas_result.get('alertas', []) if alertas_result['sucesso'] else []
-        graficos = graficos_result.get('graficos', {}) if graficos_result['sucesso'] else {}
+        # Tratar resultados de forma mais segura
+        stats = {}
+        alertas = []
+        graficos = {}
+        
+        # Processar estatísticas
+        if stats_result and stats_result.get('sucesso'):
+            stats = stats_result.get('estatisticas', {})
+        else:
+            # Valores padrão se não conseguir buscar
+            stats = {
+                'total_clientes': 0,
+                'vendas_mes': {'total': 0, 'valor_total': 0, 'valor_total_formatado': 'R$ 0,00'},
+                'vendas_abertas': {'total': 0, 'valor_total': 0, 'valor_total_formatado': 'R$ 0,00'},
+                'vendas_vencidas': {'total': 0, 'valor_total': 0, 'valor_total_formatado': 'R$ 0,00'}
+            }
+        
+        # Processar alertas
+        if alertas_result and alertas_result.get('sucesso'):
+            alertas = alertas_result.get('alertas', [])
+        
+        # Processar gráficos
+        if graficos_result and graficos_result.get('sucesso'):
+            graficos = graficos_result.get('graficos', {})
+        else:
+            # Valores padrão para gráficos
+            graficos = {
+                'vendas_por_dia': {'labels': [], 'valores': [], 'quantidades': []},
+                'formas_pagamento': {'labels': [], 'valores': []}
+            }
         
         return render_template('index.html', 
                              stats=stats, 
@@ -72,9 +100,25 @@ def dashboard():
                              graficos=graficos)
     except Exception as e:
         logger.error(f"Erro no dashboard: {e}")
-        flash('Erro ao carregar dashboard', 'error')
-        return render_template('index.html', stats={}, alertas=[], graficos={})
-
+        
+        # Em caso de erro, retornar com dados vazios
+        stats = {
+            'total_clientes': 0,
+            'vendas_mes': {'total': 0, 'valor_total': 0, 'valor_total_formatado': 'R$ 0,00'},
+            'vendas_abertas': {'total': 0, 'valor_total': 0, 'valor_total_formatado': 'R$ 0,00'},
+            'vendas_vencidas': {'total': 0, 'valor_total': 0, 'valor_total_formatado': 'R$ 0,00'}
+        }
+        alertas = []
+        graficos = {
+            'vendas_por_dia': {'labels': [], 'valores': [], 'quantidades': []},
+            'formas_pagamento': {'labels': [], 'valores': []}
+        }
+        
+        flash('Erro ao carregar dashboard - usando dados padrão', 'warning')
+        return render_template('index.html', 
+                             stats=stats, 
+                             alertas=alertas, 
+                             graficos=graficos)
 # ROTAS DE CLIENTES
 @app.route('/clientes')
 @login_required

@@ -477,28 +477,55 @@ class Database:
         return stats
     
     def get_dados_graficos(self, periodo_dias=30):
-        data_inicio = datetime.now() - timedelta(days=periodo_dias)
-        
-        # Vendas por dia
-        query = '''SELECT DATE(data_venda) as data, COUNT(*) as quantidade, SUM(valor_total) as valor
-                   FROM vendas 
-                   WHERE data_venda >= %s
-                   GROUP BY DATE(data_venda)
-                   ORDER BY data'''
-        vendas_por_dia = self.execute_query(query, (data_inicio,))
-        
-        # Formas de pagamento
-        query = '''SELECT p.forma_pagamento, COUNT(*) as quantidade, SUM(p.valor_pago) as valor
-                   FROM pagamentos p
-                   WHERE p.data_pagamento >= %s
-                   GROUP BY p.forma_pagamento'''
-        formas_pagamento = self.execute_query(query, (data_inicio,))
-        
-        return {
-            'vendas_por_dia': vendas_por_dia,
-            'formas_pagamento': formas_pagamento
-        }
-    
+        """Buscar dados para gráficos com tratamento de erro melhorado"""
+        try:
+            data_inicio = datetime.now() - timedelta(days=periodo_dias)
+            
+            # Vendas por dia - com tratamento de erro
+            try:
+                query_vendas = '''SELECT DATE(data_venda) as data, COUNT(*) as quantidade, COALESCE(SUM(valor_total), 0) as valor
+                            FROM vendas 
+                            WHERE data_venda >= %s
+                            GROUP BY DATE(data_venda)
+                            ORDER BY data'''
+                vendas_por_dia = self.execute_query(query_vendas, (data_inicio,))
+                
+                # Garantir que temos uma lista
+                if not vendas_por_dia:
+                    vendas_por_dia = []
+                    
+            except Exception as e:
+                logger.error(f"Erro ao buscar vendas por dia: {e}")
+                vendas_por_dia = []
+            
+            # Formas de pagamento - com tratamento de erro
+            try:
+                query_pagamentos = '''SELECT p.forma_pagamento, COUNT(*) as quantidade, COALESCE(SUM(p.valor_pago), 0) as valor
+                                FROM pagamentos p
+                                WHERE p.data_pagamento >= %s
+                                GROUP BY p.forma_pagamento'''
+                formas_pagamento = self.execute_query(query_pagamentos, (data_inicio,))
+                
+                # Garantir que temos uma lista
+                if not formas_pagamento:
+                    formas_pagamento = []
+                    
+            except Exception as e:
+                logger.error(f"Erro ao buscar formas de pagamento: {e}")
+                formas_pagamento = []
+            
+            return {
+                'vendas_por_dia': vendas_por_dia,
+                'formas_pagamento': formas_pagamento
+            }
+            
+        except Exception as e:
+            logger.error(f"Erro geral ao buscar dados dos gráficos: {e}")
+            # Retornar estrutura vazia mas válida
+            return {
+                'vendas_por_dia': [],
+                'formas_pagamento': []
+            }
     # MÉTODO PARA LOG
     def inserir_log(self, acao, detalhes=None, usuario='sistema', ip=None):
         query = '''INSERT INTO logs_sistema (acao, detalhes, usuario, ip)

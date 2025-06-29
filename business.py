@@ -624,6 +624,200 @@ class RelatoriosBusiness:
             db = Database()
             dados = db.get_dados_graficos(periodo_dias)
             
+            # Verificar se dados existe e tem as chaves necessárias
+            if not dados:
+                dados = {
+                    'vendas_por_dia': [],
+                    'formas_pagamento': []
+                }
+            
+            # Garantir que vendas_por_dia existe
+            if 'vendas_por_dia' not in dados:
+                dados['vendas_por_dia'] = []
+            
+            # Garantir que formas_pagamento existe
+            if 'formas_pagamento' not in dados:
+                dados['formas_pagamento'] = []
+            
+            # Formatar dados para Chart.js
+            vendas_por_dia = dados.get('vendas_por_dia', [])
+            if vendas_por_dia:
+                labels_vendas = [v['data'].strftime('%d/%m') if hasattr(v['data'], 'strftime') else str(v['data']) for v in vendas_por_dia]
+                valores_vendas = [float(v.get('valor', 0)) for v in vendas_por_dia]
+                quantidades_vendas = [int(v.get('quantidade', 0)) for v in vendas_por_dia]
+            else:
+                labels_vendas = []
+                valores_vendas = []
+                quantidades_vendas = []
+            
+            # Formas de pagamento
+            formas_pagamento = dados.get('formas_pagamento', [])
+            if formas_pagamento:
+                labels_formas = []
+                valores_formas = []
+                
+                for f in formas_pagamento:
+                    forma = f.get('forma_pagamento', 'N/A')
+                    if forma == 'dinheiro':
+                        labels_formas.append('Dinheiro')
+                    elif forma == 'cartao':
+                        labels_formas.append('Cartão')
+                    elif forma == 'pix':
+                        labels_formas.append('PIX')
+                    else:
+                        labels_formas.append(forma.title())
+                    
+                    valores_formas.append(float(f.get('valor', 0)))
+            else:
+                labels_formas = []
+                valores_formas = []
+            
+            return {
+                'sucesso': True,
+                'graficos': {
+                    'vendas_por_dia': {
+                        'labels': labels_vendas,
+                        'valores': valores_vendas,
+                        'quantidades': quantidades_vendas
+                    },
+                    'formas_pagamento': {
+                        'labels': labels_formas,
+                        'valores': valores_formas
+                    }
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Erro ao buscar dados dos gráficos: {e}")
+            
+            # Retornar estrutura vazia em caso de erro
+            return {
+                'sucesso': False,
+                'erro': 'Erro interno do sistema',
+                'graficos': {
+                    'vendas_por_dia': {
+                        'labels': [],
+                        'valores': [],
+                        'quantidades': []
+                    },
+                    'formas_pagamento': {
+                        'labels': [],
+                        'valores': []
+                    }
+                }
+            }
+    
+    @staticmethod
+    def gerar_relatorio_vendas(filtros):
+        """Gerar relatório de vendas para exportação"""
+        try:
+            db = Database()
+            vendas = db.buscar_vendas(filtros, limite=10000)  # Buscar todas
+            
+            # Preparar dados para exportação
+            dados_exportacao = []
+            for venda in vendas:
+                dados_exportacao.append({
+                    'ID': venda['id'],
+                    'Data': venda['data_venda'].strftime('%d/%m/%Y %H:%M') if hasattr(venda['data_venda'], 'strftime') else str(venda['data_venda']),
+                    'Cliente': venda.get('cliente_nome', ''),
+                    'Telefone': venda.get('cliente_telefone', ''),
+                    'Valor Total': venda.get('valor_total', 0),
+                    'Valor Pago': venda.get('valor_pago', 0),
+                    'Valor Restante': venda.get('valor_restante', 0),
+                    'Status': venda.get('status', '').title(),
+                    'Observações': venda.get('observacoes', '')
+                })
+            
+            return {
+                'sucesso': True,
+                'dados': dados_exportacao,
+                'total_registros': len(dados_exportacao),
+                'valor_total': sum(v.get('valor_total', 0) for v in vendas),
+                'valor_pago': sum(v.get('valor_pago', 0) for v in vendas),
+                'valor_restante': sum(v.get('valor_restante', 0) for v in vendas)
+            }
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar relatório de vendas: {e}")
+            return {'sucesso': False, 'erro': 'Erro interno do sistema'}
+    
+    @staticmethod
+    def gerar_relatorio_inadimplentes():
+        """Gerar relatório de clientes inadimplentes"""
+        try:
+            db = Database()
+            vendas_vencidas = db.buscar_vendas_vencidas()
+            
+            # Agrupar por cliente
+            clientes_inadimplentes = {}
+            for venda in vendas_vencidas:
+                cliente_id = venda.get('cliente_id')
+                if not cliente_id:
+                    continue
+                    
+                if cliente_id not in clientes_inadimplentes:
+                    clientes_inadimplentes[cliente_id] = {
+                        'cliente_nome': venda.get('cliente_nome', ''),
+                        'cliente_telefone': venda.get('cliente_telefone', ''),
+                        'vendas': [],
+                        'valor_total': 0,
+                        'dias_max_vencimento': 0
+                    }
+                
+                # Calcular dias de vencimento
+                try:
+                    if hasattr(venda['data_venda'], 'strftime'):
+                        dias_vencimento = (datetime.now() - venda['data_venda']).days
+                    else:
+                        dias_vencimento = 0
+                except:
+                    dias_vencimento = 0
+                
+                clientes_inadimplentes[cliente_id]['vendas'].append({
+                    'id': venda.get('id'),
+                    'data_venda': venda['data_venda'].strftime('%d/%m/%Y') if hasattr(venda['data_venda'], 'strftime') else str(venda['data_venda']),
+                    'valor_restante': venda.get('valor_restante', 0),
+                    'dias_vencimento': dias_vencimento
+                })
+                clientes_inadimplentes[cliente_id]['valor_total'] += venda.get('valor_restante', 0)
+                clientes_inadimplentes[cliente_id]['dias_max_vencimento'] = max(
+                    clientes_inadimplentes[cliente_id]['dias_max_vencimento'],
+                    dias_vencimento
+                )
+            
+            # Preparar dados para exportação
+            dados_exportacao = []
+            for cliente_data in clientes_inadimplentes.values():
+                dados_exportacao.append({
+                    'Cliente': cliente_data['cliente_nome'],
+                    'Telefone': cliente_data['cliente_telefone'],
+                    'Quantidade Vendas': len(cliente_data['vendas']),
+                    'Valor Total Devido': cliente_data['valor_total'],
+                    'Dias Máx. Vencimento': cliente_data['dias_max_vencimento']
+                })
+            
+            # Ordenar por valor devido (maior primeiro)
+            dados_exportacao.sort(key=lambda x: x.get('Valor Total Devido', 0), reverse=True)
+            
+            return {
+                'sucesso': True,
+                'dados': dados_exportacao,
+                'clientes_detalhados': list(clientes_inadimplentes.values()),
+                'total_clientes': len(clientes_inadimplentes),
+                'valor_total_devido': sum(c['valor_total'] for c in clientes_inadimplentes.values())
+            }
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar relatório de inadimplentes: {e}")
+            return {'sucesso': False, 'erro': 'Erro interno do sistema'}
+    @staticmethod
+    def get_dados_graficos(periodo_dias=30):
+        """Buscar dados para gráficos do dashboard"""
+        try:
+            db = Database()
+            dados = db.get_dados_graficos(periodo_dias)
+            
             # Formatar dados para Chart.js
             
             # Vendas por dia
