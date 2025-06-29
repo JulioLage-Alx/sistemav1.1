@@ -1005,28 +1005,28 @@
         }
 
              function renderizarPagamentoRapido(venda) {
-            document.getElementById('vendaIdPagamento').value = venda.id;
-            
-            document.getElementById('infoPagamentoVenda').innerHTML = `
-                <div class="pagamento-venda-info">
-                    <h4>Venda #${venda.id} - ${venda.cliente_nome}</h4>
-                    <div class="pagamento-valores">
-                        <span>Total: <strong>${venda.valor_total_formatado}</strong></span>
-                        <span>Pago: <strong>${venda.valor_pago_formatado}</strong></span>
-                        <span>Restante: <strong class="valor-restante">${venda.valor_restante_formatado}</strong></span>
+                document.getElementById('vendaIdPagamento').value = venda.id;
+                
+                document.getElementById('infoPagamentoVenda').innerHTML = `
+                    <div class="pagamento-venda-info">
+                        <h4>Venda #${venda.id} - ${venda.cliente_nome}</h4>
+                        <div class="pagamento-valores">
+                            <span>Total: <strong>${venda.valor_total_formatado}</strong></span>
+                            <span>Pago: <strong>${venda.valor_pago_formatado}</strong></span>
+                            <span>Restante: <strong class="valor-restante">${venda.valor_restante_formatado}</strong></span>
+                        </div>
                     </div>
-                </div>
-            `;
-            
-            // Converter valor_restante para número e definir como padrão
-            const valorRestante = parseFloat(venda.valor_restante) || 0;
-            document.getElementById('valorPagamento').value = valorRestante.toFixed(2);
-            
-            // Limpar outros campos
-            document.getElementById('formaPagamento').value = '';
-            document.getElementById('infoTroco').style.display = 'none';
-            document.querySelector('#formPagamentoRapido textarea[name="observacoes"]').value = '';
-        }
+                `;
+                
+                // ✅ CORREÇÃO: Converter e validar valor_restante corretamente
+                const valorRestante = parseFloat(venda.valor_restante) || 0;
+                document.getElementById('valorPagamento').value = valorRestante.toFixed(2);
+                
+                // Limpar outros campos
+                document.getElementById('formaPagamento').value = '';
+                document.getElementById('infoTroco').style.display = 'none';
+                document.querySelector('#formPagamentoRapido textarea[name="observacoes"]').value = '';
+            }
 
        function definirValorTotal() {
             if (vendaAtual) {

@@ -139,20 +139,20 @@
                             <div class="input-group">
                                 <span class="input-prefix">R$</span>
                                 <input type="number" id="valorPagamentoSimples" name="valor_pago" 
-                                       step="0.01" min="0.01" required onchange="calcularTrocoSimples()">
+                                       step="0.01" min="0.01" required onchange="calcularTroco()">
                             </div>
                             <div class="payment-shortcuts">
-                                <button type="button" onclick="definirValorTotalSimples()" class="btn-shortcut">
+                                <button type="button" onclick="definirValorTotal()" class="btn-shortcut">
                                     Valor Total
                                 </button>
-                                <button type="button" onclick="definirValorRestanteSimples()" class="btn-shortcut">
+                                <button type="button" onclick="definirValorRestante()" class="btn-shortcut">
                                     Valor Restante
                                 </button>
                             </div>
                         </div>
                         <div class="form-group">
                             <label>Forma de Pagamento *:</label>
-                            <select id="formaPagamentoSimples" name="forma_pagamento" required onchange="calcularTrocoSimples()">
+                            <select id="formaPagamentoSimples" name="forma_pagamento" required onchange="calcularTroco()">
                                 <option value="">Selecione...</option>
                                 <option value="dinheiro">💵 Dinheiro</option>
                                 <option value="cartao">💳 Cartão</option>
@@ -272,6 +272,17 @@
             carregarClientes();
             configurarParametrosURL();
         });
+        // ✅ Função utilitária para conversão segura de valores
+        function converterParaNumero(valor) {
+            if (typeof valor === 'number') return valor;
+            if (typeof valor === 'string') {
+                // Remover formatação brasileira
+                const numeroLimpo = valor.replace(/[R$\s\.]/g, '').replace(',', '.');
+                const numero = parseFloat(numeroLimpo);
+                return isNaN(numero) ? 0 : numero;
+            }
+            return 0;
+        }
 
         // Configurar parâmetros iniciais da URL
         function configurarParametrosURL() {
@@ -681,31 +692,34 @@
             vendaAtualSimples = null;
         }
 
-        function definirValorTotalSimples() {
-            if (vendaAtualSimples) {
-                document.getElementById('valorPagamentoSimples').value = vendaAtualSimples.valor_total.toFixed(2);
-                calcularTrocoSimples();
+        function definirValorTotal() {
+            if (vendaAtual) {
+                const valorTotal = converterParaNumero(vendaAtual.valor_total);
+                document.getElementById('valorPagamento').value = valorTotal.toFixed(2);
+                calcularTroco();
             }
         }
 
-        function definirValorRestanteSimples() {
-            if (vendaAtualSimples) {
-                document.getElementById('valorPagamentoSimples').value = vendaAtualSimples.valor_restante.toFixed(2);
-                calcularTrocoSimples();
+        function definirValorRestante() {
+            if (vendaAtual) {
+                const valorRestante = converterParaNumero(vendaAtual.valor_restante);
+                document.getElementById('valorPagamento').value = valorRestante.toFixed(2);
+                calcularTroco();
             }
         }
 
-        function calcularTrocoSimples() {
-            const forma = document.getElementById('formaPagamentoSimples').value;
-            const valorPago = parseFloat(document.getElementById('valorPagamentoSimples').value) || 0;
-            const infoTroco = document.getElementById('infoTrocoSimples');
+
+        function calcularTroco() {
+            const forma = document.getElementById('formaPagamento').value;
+            const valorPago = converterParaNumero(document.getElementById('valorPagamento').value);
+            const infoTroco = document.getElementById('infoTroco');
             
-            if (forma === 'dinheiro' && vendaAtualSimples) {
-                const valorRestante = vendaAtualSimples.valor_restante;
+            if (forma === 'dinheiro' && vendaAtual) {
+                const valorRestante = converterParaNumero(vendaAtual.valor_restante);
                 const troco = valorPago - valorRestante;
                 
                 if (troco > 0) {
-                    document.getElementById('valorTrocoSimples').textContent = formatar_moeda(troco);
+                    document.getElementById('valorTroco').textContent = formatar_moeda(troco);
                     infoTroco.style.display = 'block';
                 } else {
                     infoTroco.style.display = 'none';
@@ -1004,7 +1018,7 @@
         // Configurar eventos
         document.addEventListener('input', function(e) {
             if (e.target.id === 'valorPagamentoSimples') {
-                calcularTrocoSimples();
+                calcularTroco();
             } else if (e.target.id === 'valorPagamentoMultiplo') {
                 calcularDiferencaMultiplo();
             }
