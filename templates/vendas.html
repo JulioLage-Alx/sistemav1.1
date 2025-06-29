@@ -1004,7 +1004,7 @@
                 });
         }
 
-        function renderizarPagamentoRapido(venda) {
+             function renderizarPagamentoRapido(venda) {
             document.getElementById('vendaIdPagamento').value = venda.id;
             
             document.getElementById('infoPagamentoVenda').innerHTML = `
@@ -1018,8 +1018,9 @@
                 </div>
             `;
             
-            // Definir valor restante como padrão
-            document.getElementById('valorPagamento').value = venda.valor_restante.toFixed(2);
+            // Converter valor_restante para número e definir como padrão
+            const valorRestante = parseFloat(venda.valor_restante) || 0;
+            document.getElementById('valorPagamento').value = valorRestante.toFixed(2);
             
             // Limpar outros campos
             document.getElementById('formaPagamento').value = '';
@@ -1027,16 +1028,18 @@
             document.querySelector('#formPagamentoRapido textarea[name="observacoes"]').value = '';
         }
 
-        function definirValorTotal() {
+       function definirValorTotal() {
             if (vendaAtual) {
-                document.getElementById('valorPagamento').value = vendaAtual.valor_total.toFixed(2);
+                const valorTotal = parseFloat(vendaAtual.valor_total) || 0;
+                document.getElementById('valorPagamento').value = valorTotal.toFixed(2);
                 calcularTroco();
             }
         }
 
         function definirValorRestante() {
             if (vendaAtual) {
-                document.getElementById('valorPagamento').value = vendaAtual.valor_restante.toFixed(2);
+                const valorRestante = parseFloat(vendaAtual.valor_restante) || 0;
+                document.getElementById('valorPagamento').value = valorRestante.toFixed(2);
                 calcularTroco();
             }
         }

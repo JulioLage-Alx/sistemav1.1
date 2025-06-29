@@ -812,9 +812,20 @@ if ('IntersectionObserver' in window) {
 // Service Worker para cache (opcional, para modo offline)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
+        // Primeiro verificar se o service worker existe
+        fetch('/sw.js')
+            .then(response => {
+                if (response.ok) {
+                    return navigator.serviceWorker.register('/sw.js');
+                } else {
+                    console.log('Service Worker não encontrado, continuando sem cache offline');
+                    return null;
+                }
+            })
             .then(registration => {
-                console.log('SW registered: ', registration);
+                if (registration) {
+                    console.log('SW registered: ', registration);
+                }
             })
             .catch(registrationError => {
                 console.log('SW registration failed: ', registrationError);
