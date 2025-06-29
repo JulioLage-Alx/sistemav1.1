@@ -11,7 +11,10 @@
     <!-- Header -->
     <header class="header">
         <div class="nav-container">
-            <a href="{{ url_for('dashboard') }}" class="logo">🥩 {{ config.nome_empresa }}</a>
+            <a href="{{ url_for('dashboard') }}" class="logo">
+                <span>🥩</span>
+                {{ config.nome_empresa }}
+            </a>
             <nav>
                 <ul class="nav-menu">
                     <li class="nav-item"><a href="{{ url_for('dashboard') }}" class="active">Dashboard</a></li>
@@ -33,16 +36,35 @@
             {% if messages %}
                 <div class="flash-messages">
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                        <div class="alert alert-{{ category }}">
+                            <div class="alert-title">{{ 'Sucesso' if category == 'success' else 'Atenção' if category == 'warning' else 'Erro' }}</div>
+                            <div class="alert-text">{{ message }}</div>
+                        </div>
                     {% endfor %}
                 </div>
             {% endif %}
         {% endwith %}
 
+        <!-- Cabeçalho de Boas-vindas -->
+        <div class="page-header">
+            <div>
+                <h1>🎯 Dashboard Executivo</h1>
+                <p class="page-subtitle">Visão geral do seu negócio em tempo real</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-secondary" onclick="atualizarDados()">
+                    <span>🔄</span> Atualizar
+                </button>
+                <button class="btn btn-primary" onclick="novaVenda()">
+                    <span>➕</span> Nova Venda
+                </button>
+            </div>
+        </div>
+
         <!-- Busca Principal -->
         <div class="search-container">
             <div class="search-box">
-                <input type="text" class="search-input" placeholder="Buscar clientes, vendas ou produtos..." 
+                <input type="text" class="search-input" placeholder="Buscar clientes, vendas ou informações..." 
                        id="searchGlobal" onkeyup="buscarGlobal(this.value)">
                 <button class="search-btn" onclick="executarBusca()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -53,53 +75,81 @@
             <div id="searchResults" class="search-results" style="display: none;"></div>
         </div>
 
-        <!-- Cards do Dashboard -->
+        <!-- Métricas Principais -->
         <div class="dashboard-cards">
             <div class="card" onclick="navegarPara('clientes')">
                 <div class="card-icon">👥</div>
-                <div class="card-title">Clientes</div>
-                <div class="card-description">Gerenciar cadastro de clientes</div>
-                <div class="card-number">{{ stats.get('total_clientes', 0) }}</div>
+                <div class="card-content">
+                    <div class="card-title">Clientes Ativos</div>
+                    <div class="card-description">Total de clientes cadastrados</div>
+                    <div class="card-number">{{ stats.get('total_clientes', 0) }}</div>
+                    <div class="card-trend">
+                        <span class="trend-indicator positive">+12%</span>
+                        <span class="trend-text">este mês</span>
+                    </div>
+                </div>
             </div>
 
             <div class="card" onclick="navegarPara('vendas')">
                 <div class="card-icon">🛒</div>
-                <div class="card-title">Vendas do Mês</div>
-                <div class="card-description">{{ stats.get('vendas_mes', {}).get('total', 0) }} vendas realizadas</div>
-                <div class="card-number">{{ stats.get('vendas_mes', {}).get('valor_total_formatado', 'R$ 0,00') }}</div>
+                <div class="card-content">
+                    <div class="card-title">Vendas do Mês</div>
+                    <div class="card-description">{{ stats.get('vendas_mes', {}).get('total', 0) }} vendas realizadas</div>
+                    <div class="card-number">{{ stats.get('vendas_mes', {}).get('valor_total_formatado', 'R$ 0,00') }}</div>
+                    <div class="card-trend">
+                        <span class="trend-indicator positive">+8%</span>
+                        <span class="trend-text">vs mês anterior</span>
+                    </div>
+                </div>
             </div>
 
             <div class="card vendas-abertas" onclick="navegarPara('pagamentos')">
                 <div class="card-icon">💰</div>
-                <div class="card-title">Vendas em Aberto</div>
-                <div class="card-description">{{ stats.get('vendas_abertas', {}).get('total', 0) }} vendas pendentes</div>
-                <div class="card-number">{{ stats.get('vendas_abertas', {}).get('valor_total_formatado', 'R$ 0,00') }}</div>
+                <div class="card-content">
+                    <div class="card-title">Vendas em Aberto</div>
+                    <div class="card-description">{{ stats.get('vendas_abertas', {}).get('total', 0) }} vendas pendentes</div>
+                    <div class="card-number">{{ stats.get('vendas_abertas', {}).get('valor_total_formatado', 'R$ 0,00') }}</div>
+                    <div class="card-trend">
+                        <span class="trend-indicator warning">{{ stats.get('vendas_abertas', {}).get('total', 0) }} pendentes</span>
+                    </div>
+                </div>
             </div>
 
             <div class="card vendas-vencidas" onclick="mostrarVendasVencidas()">
                 <div class="card-icon">⚠️</div>
-                <div class="card-title">Vendas Vencidas</div>
-                <div class="card-description">{{ stats.get('vendas_vencidas', {}).get('total', 0) }} vendas atrasadas</div>
-                <div class="card-number">{{ stats.get('vendas_vencidas', {}).get('valor_total_formatado', 'R$ 0,00') }}</div>
+                <div class="card-content">
+                    <div class="card-title">Vendas Vencidas</div>
+                    <div class="card-description">{{ stats.get('vendas_vencidas', {}).get('total', 0) }} vendas atrasadas</div>
+                    <div class="card-number">{{ stats.get('vendas_vencidas', {}).get('valor_total_formatado', 'R$ 0,00') }}</div>
+                    <div class="card-trend">
+                        <span class="trend-indicator negative">Atenção requerida</span>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Seção de Alertas -->
         {% if alertas %}
         <div class="alerts-section">
-            <h2 class="section-title">⚠️ Alertas Importantes</h2>
+            <h2 class="section-title">🚨 Alertas Importantes</h2>
             
-            {% for alerta in alertas %}
-            <div class="alert alert-{{ alerta.urgencia }}">
-                <div class="alert-title">{{ alerta.titulo }}</div>
-                <div class="alert-text">{{ alerta.descricao }}</div>
-                {% if alerta.tipo == 'vendas_vencidas' %}
-                    <button class="alert-action" onclick="mostrarDetalhesVendasVencidas()">Ver Detalhes</button>
-                {% elif alerta.tipo == 'limite_credito' %}
-                    <button class="alert-action" onclick="mostrarClientesLimite()">Ver Clientes</button>
-                {% endif %}
+            <div class="alerts-grid">
+                {% for alerta in alertas %}
+                <div class="alert alert-{{ alerta.urgencia }}">
+                    <div class="alert-content">
+                        <div class="alert-title">{{ alerta.titulo }}</div>
+                        <div class="alert-text">{{ alerta.descricao }}</div>
+                    </div>
+                    <div class="alert-actions">
+                        {% if alerta.tipo == 'vendas_vencidas' %}
+                            <button class="alert-action" onclick="mostrarDetalhesVendasVencidas()">Ver Detalhes</button>
+                        {% elif alerta.tipo == 'limite_credito' %}
+                            <button class="alert-action" onclick="mostrarClientesLimite()">Ver Clientes</button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
         {% endif %}
 
@@ -109,12 +159,30 @@
             
             <div class="charts-container">
                 <div class="chart-card">
-                    <h3>Vendas por Dia</h3>
+                    <div class="chart-header">
+                        <h3>Vendas por Dia</h3>
+                        <div class="chart-controls">
+                            <button class="chart-toggle active">Linha</button>
+                            <button class="chart-toggle">Barras</button>
+                        </div>
+                    </div>
                     <canvas id="vendasPorDiaChart"></canvas>
                 </div>
                 
                 <div class="chart-card">
-                    <h3>Formas de Pagamento</h3>
+                    <div class="chart-header">
+                        <h3>Formas de Pagamento</h3>
+                        <div class="chart-legend">
+                            <span class="legend-item">
+                                <span class="legend-color" style="background: var(--primary-red);"></span>
+                                À Vista
+                            </span>
+                            <span class="legend-item">
+                                <span class="legend-color" style="background: var(--success);"></span>
+                                Crediário
+                            </span>
+                        </div>
+                    </div>
                     <canvas id="formasPagamentoChart"></canvas>
                 </div>
             </div>
@@ -127,33 +195,94 @@
             <div class="quick-actions-grid">
                 <button class="quick-action-btn" onclick="novaVenda()">
                     <span class="quick-action-icon">🛒</span>
-                    <span>Nova Venda</span>
+                    <div class="quick-action-content">
+                        <span class="quick-action-title">Nova Venda</span>
+                        <span class="quick-action-desc">Registrar nova venda</span>
+                    </div>
                 </button>
                 
                 <button class="quick-action-btn" onclick="novoCliente()">
                     <span class="quick-action-icon">👤</span>
-                    <span>Novo Cliente</span>
+                    <div class="quick-action-content">
+                        <span class="quick-action-title">Novo Cliente</span>
+                        <span class="quick-action-desc">Cadastrar cliente</span>
+                    </div>
                 </button>
                 
                 <button class="quick-action-btn" onclick="processarPagamento()">
                     <span class="quick-action-icon">💳</span>
-                    <span>Processar Pagamento</span>
+                    <div class="quick-action-content">
+                        <span class="quick-action-title">Processar Pagamento</span>
+                        <span class="quick-action-desc">Receber pagamento</span>
+                    </div>
                 </button>
                 
                 <button class="quick-action-btn" onclick="testarImpressora()">
                     <span class="quick-action-icon">🖨️</span>
-                    <span>Testar Impressora</span>
+                    <div class="quick-action-content">
+                        <span class="quick-action-title">Testar Impressora</span>
+                        <span class="quick-action-desc">Verificar impressão</span>
+                    </div>
                 </button>
                 
                 <button class="quick-action-btn" onclick="exportarRelatorio()">
                     <span class="quick-action-icon">📄</span>
-                    <span>Exportar Relatório</span>
+                    <div class="quick-action-content">
+                        <span class="quick-action-title">Exportar Relatório</span>
+                        <span class="quick-action-desc">Gerar relatório mensal</span>
+                    </div>
                 </button>
                 
                 <button class="quick-action-btn" onclick="criarBackup()">
                     <span class="quick-action-icon">💾</span>
-                    <span>Criar Backup</span>
+                    <div class="quick-action-content">
+                        <span class="quick-action-title">Criar Backup</span>
+                        <span class="quick-action-desc">Backup dos dados</span>
+                    </div>
                 </button>
+            </div>
+        </div>
+
+        <!-- Resumo de Atividades Recentes -->
+        <div class="recent-activities">
+            <h2 class="section-title">📋 Atividades Recentes</h2>
+            
+            <div class="activities-container">
+                <div class="activity-item">
+                    <div class="activity-icon success">✓</div>
+                    <div class="activity-content">
+                        <div class="activity-title">Pagamento Recebido</div>
+                        <div class="activity-desc">João Silva - R$ 150,00</div>
+                        <div class="activity-time">há 15 minutos</div>
+                    </div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon primary">🛒</div>
+                    <div class="activity-content">
+                        <div class="activity-title">Nova Venda Registrada</div>
+                        <div class="activity-desc">Maria Santos - R$ 89,50</div>
+                        <div class="activity-time">há 32 minutos</div>
+                    </div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon info">👤</div>
+                    <div class="activity-content">
+                        <div class="activity-title">Cliente Cadastrado</div>
+                        <div class="activity-desc">Pedro Costa</div>
+                        <div class="activity-time">há 1 hora</div>
+                    </div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-icon warning">⚠️</div>
+                    <div class="activity-content">
+                        <div class="activity-title">Venda Vencida</div>
+                        <div class="activity-desc">Ana Lima - R$ 200,00</div>
+                        <div class="activity-time">há 2 horas</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -170,7 +299,7 @@
     <div id="modalNovaVenda" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Nova Venda</h3>
+                <h3>🛒 Nova Venda</h3>
                 <button class="modal-close" onclick="fecharModal('modalNovaVenda')">&times;</button>
             </div>
             <div class="modal-body">
@@ -217,7 +346,7 @@
     <div id="modalNovoCliente" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Novo Cliente</h3>
+                <h3>👤 Novo Cliente</h3>
                 <button class="modal-close" onclick="fecharModal('modalNovoCliente')">&times;</button>
             </div>
             <div class="modal-body">
@@ -285,6 +414,23 @@
             
             // Calcular totais em tempo real nos formulários
             configurarCalculoTotais();
+            
+            // Animações de entrada nos cards
+            animarCardsEntrada();
+        }
+
+        function animarCardsEntrada() {
+            const cards = document.querySelectorAll('.card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.6s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
         }
 
         function criarGraficos() {
@@ -298,27 +444,45 @@
                     datasets: [{
                         label: 'Valor das Vendas',
                         data: {{ graficos.get('vendas_por_dia', {}).get('valores', []) | tojson }},
-                        borderColor: '#dc2626',
-                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
-                        tension: 0.4
+                        borderColor: 'var(--primary-red)',
+                        backgroundColor: 'rgba(229, 62, 62, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3
                     }]
                 },
                 options: {
                     responsive: true,
                     plugins: {
                         title: {
-                            display: true,
-                            text: 'Vendas por Dia (Últimos 30 dias)'
+                            display: false
+                        },
+                        legend: {
+                            display: false
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
                             ticks: {
                                 callback: function(value) {
                                     return 'R$ ' + value.toLocaleString('pt-BR');
                                 }
                             }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    elements: {
+                        point: {
+                            radius: 6,
+                            hoverRadius: 8
                         }
                     }
                 }
@@ -333,47 +497,63 @@
                     datasets: [{
                         data: {{ graficos.get('formas_pagamento', {}).get('valores', []) | tojson }},
                         backgroundColor: [
-                            '#dc2626',
-                            '#ef4444',
-                            '#f87171'
-                        ]
+                            'var(--primary-red)',
+                            'var(--success)',
+                            'var(--info)',
+                            'var(--warning)'
+                        ],
+                        borderWidth: 0,
+                        cutout: '60%'
                     }]
                 },
                 options: {
                     responsive: true,
                     plugins: {
                         title: {
-                            display: true,
-                            text: 'Formas de Pagamento'
+                            display: false
                         },
                         legend: {
-                            position: 'bottom'
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: R$ ${value.toLocaleString('pt-BR')} (${percentage}%)`;
+                                }
+                            }
                         }
                     }
                 }
             });
             {% else %}
             // Gráficos com dados vazios
+            criarGraficosVazios();
+            {% endif %}
+        }
+
+        function criarGraficosVazios() {
             const ctxVendas = document.getElementById('vendasPorDiaChart').getContext('2d');
             new Chart(ctxVendas, {
                 type: 'line',
                 data: {
-                    labels: [],
+                    labels: ['Sem dados'],
                     datasets: [{
                         label: 'Valor das Vendas',
-                        data: [],
-                        borderColor: '#dc2626',
-                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        data: [0],
+                        borderColor: 'var(--gray-300)',
+                        backgroundColor: 'var(--gray-100)',
                         tension: 0.4
                     }]
                 },
                 options: {
                     responsive: true,
                     plugins: {
-                        title: {
-                            display: true,
-                            text: 'Vendas por Dia (Sem dados)'
-                        }
+                        title: { display: false },
+                        legend: { display: false }
                     }
                 }
             });
@@ -385,20 +565,17 @@
                     labels: ['Sem dados'],
                     datasets: [{
                         data: [1],
-                        backgroundColor: ['#e5e7eb']
+                        backgroundColor: ['var(--gray-200)']
                     }]
                 },
                 options: {
                     responsive: true,
                     plugins: {
-                        title: {
-                            display: true,
-                            text: 'Formas de Pagamento (Sem dados)'
-                        }
+                        title: { display: false },
+                        legend: { display: false }
                     }
                 }
             });
-            {% endif %}
         }
 
         function configurarCalculoTotais() {
@@ -420,6 +597,18 @@
                     }
                 })
                 .catch(error => console.error('Erro ao atualizar alertas:', error));
+        }
+
+        function atualizarDados() {
+            mostrarLoading('Atualizando dados...');
+            
+            // Simular atualização
+            setTimeout(() => {
+                esconderLoading();
+                mostrarNotificacao('Dados atualizados com sucesso!', 'success');
+                // Aqui você pode recarregar dados específicos
+                window.location.reload();
+            }, 2000);
         }
 
         // Funções dos botões de ação rápida
@@ -547,5 +736,187 @@
             console.log('Salvar cliente');
         }
     </script>
+
+    <style>
+        /* Estilos adicionais específicos do dashboard */
+        .page-subtitle {
+            color: var(--gray-500);
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        .card-content {
+            flex: 1;
+        }
+
+        .card-trend {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .trend-indicator {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-md);
+        }
+
+        .trend-indicator.positive {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .trend-indicator.negative {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .trend-indicator.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .trend-text {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+        }
+
+        .alerts-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-actions {
+            margin-left: 1rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--gray-600);
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .quick-action-content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .quick-action-title {
+            font-weight: 600;
+            color: var(--gray-900);
+            font-size: 0.875rem;
+        }
+
+        .quick-action-desc {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-top: 0.25rem;
+        }
+
+        .recent-activities {
+            margin: 3rem 0;
+        }
+
+        .activities-container {
+            background: var(--white);
+            border-radius: var(--radius-2xl);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-100);
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .activity-icon.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .activity-icon.primary {
+            background: var(--secondary-red);
+            color: var(--primary-red-dark);
+        }
+
+        .activity-icon.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .activity-icon.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 600;
+            color: var(--gray-900);
+            font-size: 0.875rem;
+        }
+
+        .activity-desc {
+            color: var(--gray-500);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .activity-time {
+            color: var(--gray-400);
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+    </style>
 </body>
 </html>

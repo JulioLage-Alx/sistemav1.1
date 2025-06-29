@@ -11,27 +11,75 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --primary-red: #e53e3e;
+            --primary-red-light: #fc8181;
+            --primary-red-dark: #c53030;
+            --white: #ffffff;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --error: #ef4444;
+            --error-light: #f87171;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+            --radius-2xl: 1.5rem;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            --transition-fast: 0.15s ease-out;
+            --transition-normal: 0.3s ease-out;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, var(--gray-50) 0%, var(--white) 50%, #fef2f2 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(239, 68, 68, 0.05) 0%, transparent 70%);
+            transform: rotate(45deg);
         }
 
         .error-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
+            background: var(--white);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-2xl);
             padding: 3rem;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--shadow-2xl);
             width: 100%;
             max-width: 500px;
             text-align: center;
             position: relative;
             overflow: hidden;
+            border: 1px solid var(--gray-200);
+            z-index: 1;
         }
 
         .error-container::before {
@@ -41,50 +89,61 @@
             left: 0;
             right: 0;
             height: 4px;
-            background: linear-gradient(90deg, #ef4444, #dc2626, #991b1b);
+            background: linear-gradient(90deg, var(--error), var(--error-light), var(--error));
+            border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
         }
 
         .error-icon {
             font-size: 5rem;
             margin-bottom: 1rem;
-            color: #ef4444;
+            color: var(--error);
+            filter: drop-shadow(0 4px 8px rgba(239, 68, 68, 0.2));
             animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            0%, 100% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% { 
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
         }
 
         .error-title {
             font-size: 2.5rem;
             font-weight: 700;
-            color: #1f2937;
+            color: var(--gray-900);
             margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
         }
 
         .error-code {
             font-size: 1.2rem;
-            color: #ef4444;
+            color: var(--error);
             font-weight: 600;
             margin-bottom: 1rem;
+            letter-spacing: 0.05em;
         }
 
         .error-message {
-            color: #6b7280;
+            color: var(--gray-500);
             margin-bottom: 2rem;
-            font-size: 1.1rem;
+            font-size: 1rem;
             line-height: 1.6;
         }
 
         .error-technical {
             background: #fef2f2;
             border: 1px solid #fecaca;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             padding: 1rem;
             margin-bottom: 2rem;
             color: #991b1b;
-            font-size: 0.9rem;
+            font-size: 0.875rem;
+            text-align: left;
         }
 
         .error-actions {
@@ -99,59 +158,56 @@
             align-items: center;
             gap: 0.5rem;
             padding: 0.75rem 1.5rem;
-            font-size: 1rem;
+            font-size: 0.875rem;
             font-weight: 500;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: var(--transition-normal);
             text-decoration: none;
             text-align: center;
+            box-shadow: var(--shadow-sm);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #dc2626, #ef4444);
-            color: white;
+            background: linear-gradient(135deg, var(--primary-red), var(--primary-red-light));
+            color: var(--white);
         }
 
         .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-red-dark), var(--primary-red));
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3);
+            box-shadow: var(--shadow-lg);
         }
 
         .btn-secondary {
-            background: #6b7280;
-            color: white;
+            background: var(--gray-100);
+            color: var(--gray-700);
         }
 
         .btn-secondary:hover {
-            background: #4b5563;
+            background: var(--gray-200);
+            color: var(--gray-900);
             transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
         .btn-danger {
-            background: #ef4444;
-            color: white;
+            background: linear-gradient(135deg, var(--error), var(--error-light));
+            color: var(--white);
         }
 
         .btn-danger:hover {
-            background: #dc2626;
+            background: linear-gradient(135deg, #dc2626, var(--error));
             transform: translateY(-2px);
-        }
-
-        .error-details {
-            margin-top: 2rem;
-            padding-top: 2rem;
-            border-top: 1px solid #e5e7eb;
-            color: #6b7280;
-            font-size: 0.9rem;
+            box-shadow: var(--shadow-lg);
         }
 
         .error-suggestions {
             text-align: left;
             background: #f0f9ff;
             border: 1px solid #bae6fd;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             padding: 1rem;
             margin: 1.5rem 0;
         }
@@ -159,18 +215,27 @@
         .error-suggestions h4 {
             color: #0369a1;
             margin-bottom: 0.5rem;
-            font-size: 0.9rem;
+            font-size: 0.875rem;
+            font-weight: 600;
         }
 
         .error-suggestions ul {
             margin: 0;
             padding-left: 1.25rem;
             color: #0369a1;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
 
         .error-suggestions li {
             margin-bottom: 0.25rem;
+        }
+
+        .error-details {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--gray-200);
+            color: var(--gray-500);
+            font-size: 0.875rem;
         }
 
         @media (max-width: 480px) {
@@ -192,24 +257,74 @@
             }
         }
 
-        /* Animação */
+        /* Animação de entrada */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
-                transform: translateY(30px);
+                transform: translateY(30px) scale(0.95);
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateY(0) scale(1);
             }
         }
 
         .error-container {
             animation: fadeInUp 0.6s ease;
         }
+
+        /* Elementos decorativos flutuantes */
+        .floating-shape {
+            position: absolute;
+            opacity: 0.1;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .floating-shape:nth-child(1) {
+            top: 20%;
+            left: 10%;
+            width: 60px;
+            height: 60px;
+            background: var(--error);
+            border-radius: 50%;
+            animation-delay: 0s;
+        }
+
+        .floating-shape:nth-child(2) {
+            top: 60%;
+            right: 15%;
+            width: 40px;
+            height: 40px;
+            background: var(--error-light);
+            border-radius: 50%;
+            animation-delay: 2s;
+        }
+
+        .floating-shape:nth-child(3) {
+            bottom: 30%;
+            left: 20%;
+            width: 30px;
+            height: 30px;
+            background: var(--error);
+            transform: rotate(45deg);
+            animation-delay: 4s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="floating-shape"></div>
+    <div class="floating-shape"></div>
+    <div class="floating-shape"></div>
+
     <div class="error-container">
         <div class="error-icon">⚠️</div>
         <h1 class="error-title">Erro Interno</h1>

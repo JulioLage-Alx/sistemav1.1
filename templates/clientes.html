@@ -10,7 +10,10 @@
     <!-- Header -->
     <header class="header">
         <div class="nav-container">
-            <a href="{{ url_for('dashboard') }}" class="logo">🥩 {{ config.nome_empresa }}</a>
+            <a href="{{ url_for('dashboard') }}" class="logo">
+                <span>🥩</span>
+                {{ config.nome_empresa }}
+            </a>
             <nav>
                 <ul class="nav-menu">
                     <li class="nav-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
@@ -29,16 +32,59 @@
     <div class="main-container">
         <!-- Cabeçalho da Página -->
         <div class="page-header">
-            <h1>👥 Gestão de Clientes</h1>
+            <div>
+                <h1>👥 Gestão de Clientes</h1>
+                <p class="page-subtitle">Gerencie todos os seus clientes em um só lugar</p>
+            </div>
             <div class="page-actions">
+                <button class="btn btn-secondary" onclick="exportarClientes()">
+                    <span>📊</span> Exportar
+                </button>
                 <button class="btn btn-primary" onclick="abrirModalNovoCliente()">
                     <span>➕</span> Novo Cliente
                 </button>
             </div>
         </div>
 
+        <!-- Métricas Rápidas -->
+        <div class="metrics-summary">
+            <div class="metric-card">
+                <div class="metric-icon">👥</div>
+                <div class="metric-content">
+                    <div class="metric-number" id="totalClientes">0</div>
+                    <div class="metric-label">Total de Clientes</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">💰</div>
+                <div class="metric-content">
+                    <div class="metric-number" id="valorEmAberto">R$ 0,00</div>
+                    <div class="metric-label">Valor em Aberto</div>
+                </div>
+            </div>
+            <div class="metric-card warning">
+                <div class="metric-icon">⚠️</div>
+                <div class="metric-content">
+                    <div class="metric-number" id="clientesLimite">0</div>
+                    <div class="metric-label">Próximos do Limite</div>
+                </div>
+            </div>
+            <div class="metric-card success">
+                <div class="metric-icon">✅</div>
+                <div class="metric-content">
+                    <div class="metric-number" id="clientesOk">0</div>
+                    <div class="metric-label">Clientes OK</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Filtros e Busca -->
         <div class="filters-section">
+            <div class="filters-header">
+                <h3>🔍 Filtros e Busca</h3>
+                <button class="btn btn-secondary btn-small" onclick="limparFiltros()">Limpar Filtros</button>
+            </div>
+            
             <div class="search-bar">
                 <input type="text" id="filtroClientes" placeholder="Buscar por nome, CPF ou telefone..." 
                        onkeyup="filtrarClientes()" class="search-input">
@@ -50,18 +96,35 @@
             </div>
 
             <div class="filter-options">
-                <select id="filtroTipo" onchange="filtrarClientes()">
-                    <option value="">Todos os clientes</option>
-                    <option value="com_saldo">Com saldo devedor</option>
-                    <option value="limite_proximo">Próximo do limite</option>
-                    <option value="inadimplente">Inadimplentes</option>
-                </select>
+                <div class="filter-group">
+                    <label>Status:</label>
+                    <select id="filtroTipo" onchange="filtrarClientes()">
+                        <option value="">Todos os clientes</option>
+                        <option value="com_saldo">Com saldo devedor</option>
+                        <option value="limite_proximo">Próximo do limite</option>
+                        <option value="inadimplente">Inadimplentes</option>
+                    </select>
+                </div>
 
-                <select id="filtroOrdem" onchange="filtrarClientes()">
-                    <option value="nome">Ordenar por Nome</option>
-                    <option value="saldo_desc">Maior Saldo Devedor</option>
-                    <option value="cadastro_desc">Mais Recentes</option>
-                </select>
+                <div class="filter-group">
+                    <label>Ordenar por:</label>
+                    <select id="filtroOrdem" onchange="filtrarClientes()">
+                        <option value="nome">Nome A-Z</option>
+                        <option value="saldo_desc">Maior Saldo Devedor</option>
+                        <option value="cadastro_desc">Mais Recentes</option>
+                        <option value="limite_desc">Maior Limite</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Limite mínimo:</label>
+                    <select id="filtroLimite" onchange="filtrarClientes()">
+                        <option value="">Qualquer limite</option>
+                        <option value="500">Acima de R$ 500</option>
+                        <option value="1000">Acima de R$ 1.000</option>
+                        <option value="2000">Acima de R$ 2.000</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -80,14 +143,19 @@
                 <div class="empty-icon">👥</div>
                 <h3>Nenhum cliente encontrado</h3>
                 <p>Cadastre o primeiro cliente ou refine sua busca.</p>
-                <button class="btn btn-primary" onclick="abrirModalNovoCliente()">Cadastrar Cliente</button>
+                <button class="btn btn-primary" onclick="abrirModalNovoCliente()">
+                    <span>➕</span> Cadastrar Cliente
+                </button>
             </div>
         </div>
 
         <!-- Paginação -->
         <div class="pagination-section" id="paginacaoClientes" style="display: none;">
             <button id="btnAnterior" onclick="paginaAnterior()" class="btn btn-secondary">← Anterior</button>
-            <span id="infoPaginacao" class="pagination-info">Página 1 de 1</span>
+            <div class="pagination-info">
+                <span id="infoPaginacao">Página 1 de 1</span>
+                <span class="pagination-details">Mostrando <span id="resultadosInfo">0</span> resultados</span>
+            </div>
             <button id="btnProximo" onclick="proximaPagina()" class="btn btn-secondary">Próximo →</button>
         </div>
     </div>
@@ -96,53 +164,92 @@
     <div id="modalCliente" class="modal">
         <div class="modal-content modal-large">
             <div class="modal-header">
-                <h3 id="tituloModalCliente">Novo Cliente</h3>
+                <h3 id="tituloModalCliente">
+                    <span class="modal-icon">👤</span>
+                    Novo Cliente
+                </h3>
                 <button class="modal-close" onclick="fecharModalCliente()">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="formCliente">
                     <input type="hidden" id="clienteId" name="id">
                     
-                    <div class="form-row">
-                        <div class="form-group flex-2">
-                            <label>Nome Completo *:</label>
-                            <input type="text" id="clienteNome" name="nome" required>
+                    <div class="form-section">
+                        <h4 class="form-section-title">📋 Informações Básicas</h4>
+                        
+                        <div class="form-row">
+                            <div class="form-group flex-2">
+                                <label>Nome Completo *:</label>
+                                <input type="text" id="clienteNome" name="nome" required placeholder="Digite o nome completo">
+                            </div>
+                            <div class="form-group">
+                                <label>CPF:</label>
+                                <input type="text" id="clienteCpf" name="cpf" placeholder="000.000.000-00" data-mask="cpf">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>CPF:</label>
-                            <input type="text" id="clienteCpf" name="cpf" placeholder="000.000.000-00">
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Telefone *:</label>
-                            <input type="text" id="clienteTelefone" name="telefone" required placeholder="(00) 00000-0000">
-                        </div>
-                        <div class="form-group">
-                            <label>Limite de Crédito:</label>
-                            <div class="input-group">
-                                <span class="input-prefix">R$</span>
-                                <input type="number" id="clienteLimite" name="limite_credito" step="0.01" value="500.00">
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Telefone *:</label>
+                                <input type="text" id="clienteTelefone" name="telefone" required 
+                                       placeholder="(00) 00000-0000" data-mask="telefone">
+                            </div>
+                            <div class="form-group">
+                                <label>E-mail:</label>
+                                <input type="email" id="clienteEmail" name="email" placeholder="email@exemplo.com">
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Endereço:</label>
-                        <textarea id="clienteEndereco" name="endereco" rows="2" placeholder="Endereço completo..."></textarea>
+
+                    <div class="form-section">
+                        <h4 class="form-section-title">💳 Limite de Crédito</h4>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Limite de Crédito:</label>
+                                <div class="input-group">
+                                    <span class="input-prefix">R$</span>
+                                    <input type="number" id="clienteLimite" name="limite_credito" 
+                                           step="0.01" value="500.00" min="0">
+                                </div>
+                                <div class="field-help">
+                                    <small>Valor máximo que o cliente pode dever</small>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Status do Cliente:</label>
+                                <select id="clienteStatus" name="status">
+                                    <option value="ativo">✅ Ativo</option>
+                                    <option value="inativo">❌ Inativo</option>
+                                    <option value="bloqueado">🚫 Bloqueado</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label>Observações:</label>
-                        <textarea id="clienteObservacoes" name="observacoes" rows="3" placeholder="Observações sobre o cliente..."></textarea>
+
+                    <div class="form-section">
+                        <h4 class="form-section-title">📍 Endereço e Observações</h4>
+                        
+                        <div class="form-group">
+                            <label>Endereço Completo:</label>
+                            <textarea id="clienteEndereco" name="endereco" rows="2" 
+                                      placeholder="Rua, número, bairro, cidade - CEP"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Observações:</label>
+                            <textarea id="clienteObservacoes" name="observacoes" rows="3" 
+                                      placeholder="Observações importantes sobre o cliente..."></textarea>
+                        </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" onclick="fecharModalCliente()" class="btn btn-secondary">Cancelar</button>
+                <button type="button" onclick="fecharModalCliente()" class="btn btn-secondary">
+                    <span>❌</span> Cancelar
+                </button>
                 <button type="button" onclick="salvarCliente()" class="btn btn-primary">
-                    <span id="btnSalvarTexto">Salvar Cliente</span>
+                    <span id="btnSalvarTexto">💾 Salvar Cliente</span>
                 </button>
             </div>
         </div>
@@ -152,26 +259,42 @@
     <div id="modalPerfilCliente" class="modal">
         <div class="modal-content modal-extra-large">
             <div class="modal-header">
-                <h3 id="tituloPerfilCliente">Perfil do Cliente</h3>
+                <h3 id="tituloPerfilCliente">
+                    <span class="modal-icon">👤</span>
+                    Perfil do Cliente
+                </h3>
                 <button class="modal-close" onclick="fecharModalPerfil()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="perfil-cliente">
                     <!-- Dados do Cliente -->
                     <div class="perfil-section">
-                        <h4>📋 Dados do Cliente</h4>
+                        <div class="section-header">
+                            <h4>📋 Dados do Cliente</h4>
+                            <div class="section-actions">
+                                <button class="btn btn-secondary btn-small" onclick="editarClientePerfil()">
+                                    <span>✏️</span> Editar
+                                </button>
+                                <button class="btn btn-danger btn-small" onclick="excluirClientePerfil()">
+                                    <span>🗑️</span> Excluir
+                                </button>
+                            </div>
+                        </div>
                         <div class="perfil-info" id="dadosCliente">
                             <!-- Carregado via JavaScript -->
-                        </div>
-                        <div class="perfil-actions">
-                            <button class="btn btn-secondary" onclick="editarClientePerfil()">✏️ Editar</button>
-                            <button class="btn btn-danger" onclick="excluirClientePerfil()">🗑️ Excluir</button>
                         </div>
                     </div>
 
                     <!-- Estatísticas -->
                     <div class="perfil-section">
-                        <h4>📊 Estatísticas</h4>
+                        <div class="section-header">
+                            <h4>📊 Estatísticas</h4>
+                            <div class="section-actions">
+                                <button class="btn btn-info btn-small" onclick="exportarHistoricoCliente()">
+                                    <span>📊</span> Exportar
+                                </button>
+                            </div>
+                        </div>
                         <div class="stats-grid" id="estatisticasCliente">
                             <!-- Carregado via JavaScript -->
                         </div>
@@ -179,10 +302,16 @@
 
                     <!-- Histórico de Vendas -->
                     <div class="perfil-section">
-                        <h4>🛒 Histórico de Vendas</h4>
-                        <div class="vendas-actions">
-                            <button class="btn btn-primary" onclick="novaVendaCliente()">➕ Nova Venda</button>
-                            <button class="btn btn-success" onclick="processarPagamentoCliente()">💰 Processar Pagamento</button>
+                        <div class="section-header">
+                            <h4>🛒 Histórico de Vendas</h4>
+                            <div class="section-actions">
+                                <button class="btn btn-primary btn-small" onclick="novaVendaCliente()">
+                                    <span>➕</span> Nova Venda
+                                </button>
+                                <button class="btn btn-success btn-small" onclick="processarPagamentoCliente()">
+                                    <span>💰</span> Processar Pagamento
+                                </button>
+                            </div>
                         </div>
                         <div class="vendas-lista" id="historicoVendas">
                             <!-- Carregado via JavaScript -->
@@ -197,16 +326,28 @@
     <div id="modalConfirmacao" class="modal">
         <div class="modal-content modal-small">
             <div class="modal-header">
-                <h3>⚠️ Confirmar Exclusão</h3>
+                <h3>
+                    <span class="modal-icon">⚠️</span>
+                    Confirmar Exclusão
+                </h3>
                 <button class="modal-close" onclick="fecharModalConfirmacao()">&times;</button>
             </div>
             <div class="modal-body">
-                <p id="textoConfirmacao">Tem certeza que deseja excluir este cliente?</p>
-                <p class="warning-text">Esta ação não pode ser desfeita.</p>
+                <div class="confirmation-content">
+                    <div class="confirmation-icon">⚠️</div>
+                    <p id="textoConfirmacao">Tem certeza que deseja excluir este cliente?</p>
+                    <div class="warning-box">
+                        <strong>⚠️ Atenção:</strong> Esta ação não pode ser desfeita e todos os dados relacionados serão perdidos.
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" onclick="fecharModalConfirmacao()" class="btn btn-secondary">Cancelar</button>
-                <button type="button" onclick="confirmarExclusao()" class="btn btn-danger">Excluir</button>
+                <button type="button" onclick="fecharModalConfirmacao()" class="btn btn-secondary">
+                    <span>❌</span> Cancelar
+                </button>
+                <button type="button" onclick="confirmarExclusao()" class="btn btn-danger">
+                    <span>🗑️</span> Excluir
+                </button>
             </div>
         </div>
     </div>
@@ -231,7 +372,21 @@
         document.addEventListener('DOMContentLoaded', function() {
             carregarClientes();
             configurarMascaras();
+            animarEntrada();
         });
+
+        function animarEntrada() {
+            const elements = document.querySelectorAll('.metric-card');
+            elements.forEach((el, index) => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    el.style.transition = 'all 0.6s ease';
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        }
 
         // Carregar lista de clientes
         function carregarClientes() {
@@ -246,6 +401,7 @@
                         clientes = data.clientes;
                         clientesFiltrados = [...clientes];
                         renderizarClientes();
+                        atualizarMetricas();
                     } else {
                         mostrarNotificacao(data.erro || 'Erro ao carregar clientes', 'error');
                         mostrarEstadoVazio();
@@ -257,6 +413,18 @@
                     mostrarNotificacao('Erro ao carregar clientes', 'error');
                     mostrarEstadoVazio();
                 });
+        }
+
+        function atualizarMetricas() {
+            const totalClientes = clientes.length;
+            const valorEmAberto = clientes.reduce((sum, c) => sum + c.saldo_devedor, 0);
+            const clientesLimite = clientes.filter(c => c.saldo_devedor > c.limite_credito * 0.8).length;
+            const clientesOk = clientes.filter(c => c.saldo_devedor === 0).length;
+
+            document.getElementById('totalClientes').textContent = totalClientes;
+            document.getElementById('valorEmAberto').textContent = formatar_moeda(valorEmAberto);
+            document.getElementById('clientesLimite').textContent = clientesLimite;
+            document.getElementById('clientesOk').textContent = clientesOk;
         }
 
         // Renderizar lista de clientes
@@ -278,51 +446,71 @@
             const html = clientesPagina.map(cliente => `
                 <div class="cliente-card" onclick="abrirPerfilCliente(${cliente.id})">
                     <div class="cliente-header">
-                        <h3 class="cliente-nome">${cliente.nome}</h3>
-                        <div class="cliente-status ${getStatusCliente(cliente)}">
-                            ${getTextStatus(cliente)}
+                        <div class="cliente-info-principal">
+                            <h3 class="cliente-nome">${cliente.nome}</h3>
+                            <div class="cliente-contato">
+                                <span class="cliente-telefone">📞 ${cliente.telefone}</span>
+                                ${cliente.email ? `<span class="cliente-email">✉️ ${cliente.email}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="cliente-status ${getStatusClasse(cliente)}">
+                            <span class="status-indicator"></span>
+                            ${getStatusTexto(cliente)}
                         </div>
                     </div>
                     
-                    <div class="cliente-info">
-                        <div class="info-item">
-                            <span class="info-label">CPF:</span>
-                            <span class="info-value">${cliente.cpf_formatado || 'Não informado'}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Telefone:</span>
-                            <span class="info-value">${cliente.telefone}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Saldo Devedor:</span>
-                            <span class="info-value saldo-${cliente.saldo_devedor > 0 ? 'positivo' : 'zero'}">
-                                ${cliente.saldo_devedor_formatado}
-                            </span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Limite:</span>
-                            <span class="info-value">${cliente.limite_credito_formatado}</span>
+                    <div class="cliente-detalhes">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">CPF:</span>
+                                <span class="info-value">${cliente.cpf_formatado || 'Não informado'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Limite:</span>
+                                <span class="info-value">${cliente.limite_credito_formatado}</span>
+                            </div>
+                            <div class="info-item ${cliente.saldo_devedor > 0 ? 'destaque' : ''}">
+                                <span class="info-label">Saldo Devedor:</span>
+                                <span class="info-value saldo-${cliente.saldo_devedor > 0 ? 'positivo' : 'zero'}">
+                                    ${cliente.saldo_devedor_formatado}
+                                </span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Disponível:</span>
+                                <span class="info-value">${formatar_moeda(cliente.limite_credito - cliente.saldo_devedor)}</span>
+                            </div>
                         </div>
                     </div>
                     
                     ${cliente.saldo_devedor > 0 ? `
                         <div class="cliente-progress">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${Math.min(cliente.percentual_limite_usado, 100)}%"></div>
+                            <div class="progress-info">
+                                <span class="progress-label">Utilização do limite</span>
+                                <span class="progress-percent">${cliente.percentual_limite_usado.toFixed(1)}%</span>
                             </div>
-                            <span class="progress-text">${cliente.percentual_limite_usado.toFixed(1)}% do limite</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${getProgressClass(cliente.percentual_limite_usado)}" 
+                                     style="width: ${Math.min(cliente.percentual_limite_usado, 100)}%"></div>
+                            </div>
                         </div>
                     ` : ''}
                     
                     <div class="cliente-actions">
-                        <button class="btn-action" onclick="event.stopPropagation(); editarCliente(${cliente.id})" title="Editar">
-                            ✏️
+                        <button class="btn-action primary" onclick="event.stopPropagation(); editarCliente(${cliente.id})" 
+                                title="Editar cliente">
+                            <span>✏️</span>
                         </button>
-                        <button class="btn-action" onclick="event.stopPropagation(); novaVendaCliente(${cliente.id})" title="Nova Venda">
-                            🛒
+                        <button class="btn-action success" onclick="event.stopPropagation(); novaVendaCliente(${cliente.id})" 
+                                title="Nova venda">
+                            <span>🛒</span>
                         </button>
-                        <button class="btn-action" onclick="event.stopPropagation(); processarPagamentoCliente(${cliente.id})" title="Pagamento">
-                            💰
+                        <button class="btn-action info" onclick="event.stopPropagation(); processarPagamentoCliente(${cliente.id})" 
+                                title="Processar pagamento">
+                            <span>💰</span>
+                        </button>
+                        <button class="btn-action secondary" onclick="event.stopPropagation(); abrirPerfilCliente(${cliente.id})" 
+                                title="Ver perfil completo">
+                            <span>👁️</span>
                         </button>
                     </div>
                 </div>
@@ -335,25 +523,40 @@
             
             // Esconder estado vazio
             document.getElementById('nenhumCliente').style.display = 'none';
+
+            // Animar cards
+            setTimeout(() => {
+                document.querySelectorAll('.cliente-card').forEach((card, index) => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    setTimeout(() => {
+                        card.style.transition = 'all 0.4s ease';
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, index * 50);
+                });
+            }, 100);
         }
 
         // Funções auxiliares para status do cliente
-        function getStatusCliente(cliente) {
-            if (cliente.saldo_devedor > cliente.limite_credito * 0.8) {
-                return 'limite-alto';
-            } else if (cliente.saldo_devedor > 0) {
-                return 'com-saldo';
-            }
+        function getStatusClasse(cliente) {
+            if (cliente.saldo_devedor > cliente.limite_credito) return 'inadimplente';
+            if (cliente.saldo_devedor > cliente.limite_credito * 0.8) return 'limite-alto';
+            if (cliente.saldo_devedor > 0) return 'com-saldo';
             return 'ok';
         }
 
-        function getTextStatus(cliente) {
-            if (cliente.saldo_devedor > cliente.limite_credito * 0.8) {
-                return 'Limite Alto';
-            } else if (cliente.saldo_devedor > 0) {
-                return 'Com Saldo';
-            }
-            return 'Ok';
+        function getStatusTexto(cliente) {
+            if (cliente.saldo_devedor > cliente.limite_credito) return 'Inadimplente';
+            if (cliente.saldo_devedor > cliente.limite_credito * 0.8) return 'Limite Alto';
+            if (cliente.saldo_devedor > 0) return 'Com Saldo';
+            return 'Em Dia';
+        }
+
+        function getProgressClass(percentual) {
+            if (percentual > 100) return 'danger';
+            if (percentual > 80) return 'warning';
+            return 'success';
         }
 
         // Filtrar clientes
@@ -361,6 +564,7 @@
             const filtroTexto = document.getElementById('filtroClientes').value.toLowerCase();
             const filtroTipo = document.getElementById('filtroTipo').value;
             const filtroOrdem = document.getElementById('filtroOrdem').value;
+            const filtroLimite = document.getElementById('filtroLimite').value;
 
             // Aplicar filtros
             clientesFiltrados = clientes.filter(cliente => {
@@ -368,21 +572,30 @@
                 const matchTexto = !filtroTexto || 
                     cliente.nome.toLowerCase().includes(filtroTexto) ||
                     (cliente.cpf && cliente.cpf.includes(filtroTexto)) ||
-                    cliente.telefone.includes(filtroTexto);
+                    cliente.telefone.includes(filtroTexto) ||
+                    (cliente.email && cliente.email.toLowerCase().includes(filtroTexto));
 
                 if (!matchTexto) return false;
 
                 // Filtro por tipo
                 switch(filtroTipo) {
                     case 'com_saldo':
-                        return cliente.saldo_devedor > 0;
+                        if (cliente.saldo_devedor <= 0) return false;
+                        break;
                     case 'limite_proximo':
-                        return cliente.saldo_devedor > cliente.limite_credito * 0.8;
+                        if (cliente.saldo_devedor <= cliente.limite_credito * 0.8) return false;
+                        break;
                     case 'inadimplente':
-                        return cliente.saldo_devedor > cliente.limite_credito;
-                    default:
-                        return true;
+                        if (cliente.saldo_devedor <= cliente.limite_credito) return false;
+                        break;
                 }
+
+                // Filtro por limite
+                if (filtroLimite && cliente.limite_credito < parseFloat(filtroLimite)) {
+                    return false;
+                }
+
+                return true;
             });
 
             // Aplicar ordenação
@@ -392,6 +605,9 @@
                     break;
                 case 'cadastro_desc':
                     clientesFiltrados.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                    break;
+                case 'limite_desc':
+                    clientesFiltrados.sort((a, b) => b.limite_credito - a.limite_credito);
                     break;
                 default: // nome
                     clientesFiltrados.sort((a, b) => a.nome.localeCompare(b.nome));
@@ -403,13 +619,25 @@
             renderizarClientes();
         }
 
+        function limparFiltros() {
+            document.getElementById('filtroClientes').value = '';
+            document.getElementById('filtroTipo').value = '';
+            document.getElementById('filtroOrdem').value = 'nome';
+            document.getElementById('filtroLimite').value = '';
+            
+            clientesFiltrados = [...clientes];
+            paginaAtual = 1;
+            renderizarClientes();
+        }
+
         // Abrir modal novo cliente
         function abrirModalNovoCliente() {
-            document.getElementById('tituloModalCliente').textContent = 'Novo Cliente';
-            document.getElementById('btnSalvarTexto').textContent = 'Salvar Cliente';
+            document.getElementById('tituloModalCliente').innerHTML = '<span class="modal-icon">➕</span> Novo Cliente';
+            document.getElementById('btnSalvarTexto').innerHTML = '<span>💾</span> Salvar Cliente';
             document.getElementById('formCliente').reset();
             document.getElementById('clienteId').value = '';
             document.getElementById('clienteLimite').value = '500.00';
+            document.getElementById('clienteStatus').value = 'ativo';
             abrirModal('modalCliente');
         }
 
@@ -425,16 +653,18 @@
                     if (data.sucesso) {
                         const cliente = data.cliente;
                         
-                        document.getElementById('tituloModalCliente').textContent = 'Editar Cliente';
-                        document.getElementById('btnSalvarTexto').textContent = 'Atualizar Cliente';
+                        document.getElementById('tituloModalCliente').innerHTML = '<span class="modal-icon">✏️</span> Editar Cliente';
+                        document.getElementById('btnSalvarTexto').innerHTML = '<span>💾</span> Atualizar Cliente';
                         
                         document.getElementById('clienteId').value = cliente.id;
                         document.getElementById('clienteNome').value = cliente.nome;
                         document.getElementById('clienteCpf').value = cliente.cpf || '';
                         document.getElementById('clienteTelefone').value = cliente.telefone;
+                        document.getElementById('clienteEmail').value = cliente.email || '';
                         document.getElementById('clienteLimite').value = cliente.limite_credito;
                         document.getElementById('clienteEndereco').value = cliente.endereco || '';
                         document.getElementById('clienteObservacoes').value = cliente.observacoes || '';
+                        document.getElementById('clienteStatus').value = cliente.status || 'ativo';
                         
                         abrirModal('modalCliente');
                     } else {
@@ -508,112 +738,6 @@
             });
         }
 
-        // Abrir perfil do cliente
-        function abrirPerfilCliente(clienteId) {
-            mostrarLoading('Carregando perfil do cliente...');
-            
-            fetch(`/api/clientes/${clienteId}`)
-                .then(response => response.json())
-                .then(data => {
-                    esconderLoading();
-                    
-                    if (data.sucesso) {
-                        clienteAtual = data.cliente;
-                        renderizarPerfilCliente(data);
-                        abrirModal('modalPerfilCliente');
-                    } else {
-                        mostrarNotificacao(data.erro || 'Erro ao carregar perfil', 'error');
-                    }
-                })
-                .catch(error => {
-                    esconderLoading();
-                    console.error('Erro:', error);
-                    mostrarNotificacao('Erro ao carregar perfil', 'error');
-                });
-        }
-
-        // Renderizar perfil do cliente
-        function renderizarPerfilCliente(data) {
-            const cliente = data.cliente;
-            const stats = data.estatisticas;
-            
-            // Título
-            document.getElementById('tituloPerfilCliente').textContent = `Perfil - ${cliente.nome}`;
-            
-            // Dados do cliente
-            document.getElementById('dadosCliente').innerHTML = `
-                <div class="dados-grid">
-                    <div class="dado-item">
-                        <label>Nome:</label>
-                        <span>${cliente.nome}</span>
-                    </div>
-                    <div class="dado-item">
-                        <label>CPF:</label>
-                        <span>${cliente.cpf_formatado || 'Não informado'}</span>
-                    </div>
-                    <div class="dado-item">
-                        <label>Telefone:</label>
-                        <span>${cliente.telefone}</span>
-                    </div>
-                    <div class="dado-item">
-                        <label>Limite de Crédito:</label>
-                        <span>${cliente.limite_credito_formatado}</span>
-                    </div>
-                    <div class="dado-item">
-                        <label>Endereço:</label>
-                        <span>${cliente.endereco || 'Não informado'}</span>
-                    </div>
-                    <div class="dado-item">
-                        <label>Observações:</label>
-                        <span>${cliente.observacoes || 'Nenhuma'}</span>
-                    </div>
-                </div>
-            `;
-            
-            // Estatísticas
-            document.getElementById('estatisticasCliente').innerHTML = `
-                <div class="stat-card">
-                    <div class="stat-number">${stats.total_compras}</div>
-                    <div class="stat-label">Total de Compras</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">${stats.valor_total_compras_formatado}</div>
-                    <div class="stat-label">Valor Total Comprado</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">${stats.valor_em_aberto_formatado}</div>
-                    <div class="stat-label">Valor em Aberto</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">${stats.vendas_abertas}</div>
-                    <div class="stat-label">Vendas em Aberto</div>
-                </div>
-            `;
-            
-            // Histórico de vendas
-            const vendasHtml = data.vendas.map(venda => `
-                <div class="venda-item">
-                    <div class="venda-header">
-                        <span class="venda-id">#${venda.id}</span>
-                        <span class="venda-data">${venda.data_venda_formatada}</span>
-                        <span class="venda-status status-${venda.status}">${venda.status_texto}</span>
-                    </div>
-                    <div class="venda-valores">
-                        <span class="venda-total">Total: ${venda.valor_total_formatado}</span>
-                        ${venda.valor_restante > 0 ? `<span class="venda-restante">Restante: ${venda.valor_restante_formatado}</span>` : ''}
-                    </div>
-                    <div class="venda-actions">
-                        <button class="btn-small" onclick="verDetalhesVenda(${venda.id})">Ver Detalhes</button>
-                        ${venda.status === 'aberta' || venda.status === 'vencida' ? 
-                            `<button class="btn-small btn-success" onclick="processarPagamentoVenda(${venda.id})">Pagar</button>` : 
-                            ''}
-                    </div>
-                </div>
-            `).join('');
-            
-            document.getElementById('historicoVendas').innerHTML = vendasHtml || '<p class="empty-text">Nenhuma venda encontrada.</p>';
-        }
-
         // Configurar máscaras de input
         function configurarMascaras() {
             // Máscara de CPF
@@ -643,14 +767,151 @@
             });
         }
 
-        // Funções de modal
-        function fecharModalCliente() {
-            fecharModal('modalCliente');
+        // [Continua com as funções restantes do JavaScript original...]
+        // As demais funções permanecem iguais, apenas incluo algumas das principais aqui:
+
+        function abrirPerfilCliente(clienteId) {
+            mostrarLoading('Carregando perfil do cliente...');
+            
+            fetch(`/api/clientes/${clienteId}`)
+                .then(response => response.json())
+                .then(data => {
+                    esconderLoading();
+                    
+                    if (data.sucesso) {
+                        clienteAtual = data.cliente;
+                        renderizarPerfilCliente(data);
+                        abrirModal('modalPerfilCliente');
+                    } else {
+                        mostrarNotificacao(data.erro || 'Erro ao carregar perfil', 'error');
+                    }
+                })
+                .catch(error => {
+                    esconderLoading();
+                    console.error('Erro:', error);
+                    mostrarNotificacao('Erro ao carregar perfil', 'error');
+                });
         }
 
-        function fecharModalPerfil() {
-            fecharModal('modalPerfilCliente');
-            clienteAtual = null;
+        function renderizarPerfilCliente(data) {
+            const cliente = data.cliente;
+            const stats = data.estatisticas;
+            
+            // Título
+            document.getElementById('tituloPerfilCliente').innerHTML = `
+                <span class="modal-icon">👤</span>
+                Perfil - ${cliente.nome}
+            `;
+            
+            // Dados do cliente
+            document.getElementById('dadosCliente').innerHTML = `
+                <div class="perfil-dados-grid">
+                    <div class="dado-item">
+                        <div class="dado-label">Nome Completo</div>
+                        <div class="dado-valor">${cliente.nome}</div>
+                    </div>
+                    <div class="dado-item">
+                        <div class="dado-label">CPF</div>
+                        <div class="dado-valor">${cliente.cpf_formatado || 'Não informado'}</div>
+                    </div>
+                    <div class="dado-item">
+                        <div class="dado-label">Telefone</div>
+                        <div class="dado-valor">${cliente.telefone}</div>
+                    </div>
+                    <div class="dado-item">
+                        <div class="dado-label">E-mail</div>
+                        <div class="dado-valor">${cliente.email || 'Não informado'}</div>
+                    </div>
+                    <div class="dado-item">
+                        <div class="dado-label">Limite de Crédito</div>
+                        <div class="dado-valor destaque">${cliente.limite_credito_formatado}</div>
+                    </div>
+                    <div class="dado-item">
+                        <div class="dado-label">Saldo Devedor</div>
+                        <div class="dado-valor ${cliente.saldo_devedor > 0 ? 'negativo' : 'positivo'}">
+                            ${cliente.saldo_devedor_formatado}
+                        </div>
+                    </div>
+                    <div class="dado-item full-width">
+                        <div class="dado-label">Endereço</div>
+                        <div class="dado-valor">${cliente.endereco || 'Não informado'}</div>
+                    </div>
+                    <div class="dado-item full-width">
+                        <div class="dado-label">Observações</div>
+                        <div class="dado-valor">${cliente.observacoes || 'Nenhuma observação'}</div>
+                    </div>
+                </div>
+            `;
+            
+            // Estatísticas
+            document.getElementById('estatisticasCliente').innerHTML = `
+                <div class="stat-card primary">
+                    <div class="stat-icon">🛒</div>
+                    <div class="stat-content">
+                        <div class="stat-number">${stats.total_compras}</div>
+                        <div class="stat-label">Total de Compras</div>
+                    </div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-content">
+                        <div class="stat-number">${stats.valor_total_compras_formatado}</div>
+                        <div class="stat-label">Valor Total Comprado</div>
+                    </div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-icon">⏰</div>
+                    <div class="stat-content">
+                        <div class="stat-number">${stats.valor_em_aberto_formatado}</div>
+                        <div class="stat-label">Valor em Aberto</div>
+                    </div>
+                </div>
+                <div class="stat-card info">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-content">
+                        <div class="stat-number">${stats.vendas_abertas}</div>
+                        <div class="stat-label">Vendas em Aberto</div>
+                    </div>
+                </div>
+            `;
+            
+            // Histórico de vendas
+            const vendasHtml = data.vendas.map(venda => `
+                <div class="venda-item">
+                    <div class="venda-header">
+                        <div class="venda-info">
+                            <span class="venda-id">#${venda.id}</span>
+                            <span class="venda-data">${venda.data_venda_formatada}</span>
+                        </div>
+                        <span class="venda-status status-${venda.status}">${venda.status_texto}</span>
+                    </div>
+                    <div class="venda-valores">
+                        <div class="valor-info">
+                            <span class="valor-label">Total:</span>
+                            <span class="valor-numero">${venda.valor_total_formatado}</span>
+                        </div>
+                        ${venda.valor_restante > 0 ? `
+                            <div class="valor-info restante">
+                                <span class="valor-label">Restante:</span>
+                                <span class="valor-numero">${venda.valor_restante_formatado}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="venda-actions">
+                        <button class="btn btn-secondary btn-small" onclick="verDetalhesVenda(${venda.id})">
+                            <span>👁️</span> Ver Detalhes
+                        </button>
+                        ${venda.status === 'aberta' || venda.status === 'vencida' ? 
+                            `<button class="btn btn-success btn-small" onclick="processarPagamentoVenda(${venda.id})">
+                                <span>💰</span> Pagar
+                            </button>` : 
+                            ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('historicoVendas').innerHTML = vendasHtml || 
+                '<div class="empty-message">Nenhuma venda encontrada para este cliente.</div>';
         }
 
         // Funções auxiliares
@@ -671,10 +932,28 @@
             document.getElementById('paginacaoClientes').style.display = 'none';
         }
 
+        // Funções de modal
+        function fecharModalCliente() {
+            fecharModal('modalCliente');
+        }
+
+        function fecharModalPerfil() {
+            fecharModal('modalPerfilCliente');
+            clienteAtual = null;
+        }
+
+        function fecharModalConfirmacao() {
+            fecharModal('modalConfirmacao');
+            clienteParaExcluir = null;
+        }
+
+        // [Outras funções continuam...]
+
         // Paginação
         function atualizarPaginacao(totalPaginas) {
             const paginacaoElement = document.getElementById('paginacaoClientes');
             const infoElement = document.getElementById('infoPaginacao');
+            const resultadosElement = document.getElementById('resultadosInfo');
             const btnAnterior = document.getElementById('btnAnterior');
             const btnProximo = document.getElementById('btnProximo');
 
@@ -685,6 +964,7 @@
 
             paginacaoElement.style.display = 'flex';
             infoElement.textContent = `Página ${paginaAtual} de ${totalPaginas}`;
+            resultadosElement.textContent = `${clientesFiltrados.length} de ${clientes.length}`;
             
             btnAnterior.disabled = paginaAtual === 1;
             btnProximo.disabled = paginaAtual === totalPaginas;
@@ -705,21 +985,9 @@
             }
         }
 
-        // Funções do perfil do cliente
-        function editarClientePerfil() {
-            if (clienteAtual) {
-                fecharModalPerfil();
-                editarCliente(clienteAtual.id);
-            }
-        }
-
-        function excluirClientePerfil() {
-            if (clienteAtual) {
-                clienteParaExcluir = clienteAtual.id;
-                document.getElementById('textoConfirmacao').textContent = 
-                    `Tem certeza que deseja excluir o cliente "${clienteAtual.nome}"?`;
-                abrirModal('modalConfirmacao');
-            }
+        // Outras funções (exportar, navegação, etc.)
+        function exportarClientes() {
+            window.open('/api/relatorios/clientes/exportar?formato=excel', '_blank');
         }
 
         function novaVendaCliente(clienteId = null) {
@@ -736,10 +1004,29 @@
             }
         }
 
-        // Confirmação de exclusão
-        function fecharModalConfirmacao() {
-            fecharModal('modalConfirmacao');
-            clienteParaExcluir = null;
+        function verDetalhesVenda(vendaId) {
+            window.location.href = `/vendas?venda_id=${vendaId}`;
+        }
+
+        function processarPagamentoVenda(vendaId) {
+            window.location.href = `/pagamentos?venda_id=${vendaId}`;
+        }
+
+        // Funções do perfil
+        function editarClientePerfil() {
+            if (clienteAtual) {
+                fecharModalPerfil();
+                editarCliente(clienteAtual.id);
+            }
+        }
+
+        function excluirClientePerfil() {
+            if (clienteAtual) {
+                clienteParaExcluir = clienteAtual.id;
+                document.getElementById('textoConfirmacao').textContent = 
+                    `Tem certeza que deseja excluir o cliente "${clienteAtual.nome}"?`;
+                abrirModal('modalConfirmacao');
+            }
         }
 
         function confirmarExclusao() {
@@ -772,14 +1059,482 @@
             });
         }
 
-        // Funções relacionadas a vendas (redirecionamentos)
-        function verDetalhesVenda(vendaId) {
-            window.location.href = `/vendas?venda_id=${vendaId}`;
-        }
-
-        function processarPagamentoVenda(vendaId) {
-            window.location.href = `/pagamentos?venda_id=${vendaId}`;
+        function exportarHistoricoCliente() {
+            if (clienteAtual) {
+                window.open(`/api/relatorios/cliente/${clienteAtual.id}/historico?formato=excel`, '_blank');
+            }
         }
     </script>
+
+    <style>
+        /* Estilos específicos da página de clientes */
+        .page-subtitle {
+            color: var(--gray-500);
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        .metrics-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .metric-card {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: var(--transition-normal);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .metric-card.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .metric-card.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .metric-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--gray-100);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .metric-content {
+            flex: 1;
+        }
+
+        .metric-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            letter-spacing: -0.025em;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+        }
+
+        .filters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .filters-header h3 {
+            color: var(--gray-700);
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .cliente-card {
+            transition: var(--transition-normal);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cliente-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--success), var(--info));
+            transform: scaleX(0);
+            transition: var(--transition-normal);
+        }
+
+        .cliente-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .cliente-info-principal {
+            flex: 1;
+        }
+
+        .cliente-contato {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .cliente-telefone,
+        .cliente-email {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .cliente-detalhes {
+            margin: 1rem 0;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .info-item.destaque {
+            background: var(--secondary-red);
+            padding: 0.5rem;
+            border-radius: var(--radius-md);
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            font-weight: 500;
+        }
+
+        .progress-percent {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .progress-fill.success {
+            background: linear-gradient(90deg, var(--success), var(--success));
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, var(--warning), var(--warning-light));
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, var(--error), var(--error-light));
+        }
+
+        .btn-action {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-lg);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            font-size: 0.875rem;
+        }
+
+        .btn-action.primary {
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .btn-action.primary:hover {
+            background: var(--primary-red);
+            color: var(--white);
+        }
+
+        .btn-action.success:hover {
+            background: var(--success);
+            color: var(--white);
+        }
+
+        .btn-action.info:hover {
+            background: var(--info);
+            color: var(--white);
+        }
+
+        .btn-action.secondary:hover {
+            background: var(--gray-600);
+            color: var(--white);
+        }
+
+        .form-section {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .form-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .form-section-title {
+            color: var(--gray-700);
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .field-help {
+            margin-top: 0.25rem;
+        }
+
+        .field-help small {
+            color: var(--gray-400);
+            font-size: 0.75rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .perfil-dados-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .dado-item {
+            padding: 0.75rem;
+            background: var(--gray-50);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-200);
+        }
+
+        .dado-item.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .dado-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .dado-valor {
+            font-weight: 500;
+            color: var(--gray-900);
+        }
+
+        .dado-valor.destaque {
+            color: var(--primary-red);
+            font-weight: 600;
+        }
+
+        .dado-valor.positivo {
+            color: var(--success);
+        }
+
+        .dado-valor.negativo {
+            color: var(--error);
+        }
+
+        .stat-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 1rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .stat-card.primary {
+            border-left: 4px solid var(--primary-red);
+        }
+
+        .stat-card.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .stat-card.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .stat-card.info {
+            border-left: 4px solid var(--info);
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gray-100);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .stat-number {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            letter-spacing: -0.025em;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            font-weight: 500;
+        }
+
+        .venda-item {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .venda-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .venda-info {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .venda-id {
+            font-weight: 600;
+            color: var(--primary-red);
+        }
+
+        .venda-data {
+            color: var(--gray-500);
+            font-size: 0.875rem;
+        }
+
+        .venda-valores {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .valor-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .valor-info.restante {
+            color: var(--error);
+            font-weight: 600;
+        }
+
+        .valor-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+        }
+
+        .valor-numero {
+            font-weight: 500;
+            color: var(--gray-900);
+        }
+
+        .venda-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: var(--gray-500);
+            font-style: italic;
+            padding: 2rem;
+        }
+
+        .confirmation-content {
+            text-align: center;
+        }
+
+        .confirmation-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .warning-box {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: var(--radius-md);
+            padding: 0.75rem;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: #92400e;
+        }
+
+        .pagination-details {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            margin-left: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .perfil-dados-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .filter-options {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+        }
+    </style>
 </body>
 </html>
