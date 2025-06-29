@@ -3,6 +3,7 @@ import csv
 import os
 import json
 from datetime import datetime, timedelta
+import decimal
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 import logging
@@ -53,6 +54,15 @@ def validar_cpf(cpf):
     
     return True
 
+def convert_decimals_to_float(data):
+    if isinstance(data, list):
+            return [convert_decimals_to_float(item) for item in data]
+    elif isinstance(data, dict):
+            return {key: convert_decimals_to_float(value) for key, value in data.items()}
+    elif isinstance(data, decimal.Decimal):
+            return float(data)
+    else:
+            return data
 def formatar_moeda(valor):
     """Formatar valor monetário para exibição"""
     try:

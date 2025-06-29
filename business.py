@@ -337,6 +337,9 @@ class VendaBusiness:
             
             # Formatar dados para exibição
             for venda in vendas:
+                venda['valor_total'] = float(venda.get('valor_total', 0) or 0)
+                venda['valor_pago'] = float(venda.get('valor_pago', 0) or 0)
+                venda['valor_restante'] = float(venda.get('valor_restante', 0) or 0)
                 venda['valor_total_formatado'] = formatar_moeda(venda['valor_total'])
                 venda['valor_pago_formatado'] = formatar_moeda(venda['valor_pago'])
                 venda['valor_restante_formatado'] = formatar_moeda(venda['valor_restante'])

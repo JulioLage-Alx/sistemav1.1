@@ -813,10 +813,10 @@ if ('IntersectionObserver' in window) {
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         // Primeiro verificar se o service worker existe
-        fetch('/sw.js')
+        fetch('/static/sw.js')
             .then(response => {
                 if (response.ok) {
-                    return navigator.serviceWorker.register('/sw.js');
+                    return navigator.serviceWorker.register('/static/sw.js');
                 } else {
                     console.log('Service Worker não encontrado, continuando sem cache offline');
                     return null;

@@ -1,6 +1,7 @@
 import mysql.connector
 from mysql.connector import Error
 from datetime import datetime, timedelta
+import utils as ut
 from config import Config
 import logging
 
@@ -401,6 +402,7 @@ class Database:
             'valor_total_pago': valor_total_pago,
             'valor_total_devido': valor_total_devido
         }
+
     
     # MÉTODOS PARA ALERTAS
     def buscar_vendas_vencidas(self):
@@ -417,6 +419,7 @@ class Database:
         
         # Atualizar status para vencida
         for venda in vendas_vencidas:
+            vendas = ut.convert_decimals_to_float(vendas)
             self.atualizar_status_venda(venda['id'], 'vencida')
         
         return vendas_vencidas
