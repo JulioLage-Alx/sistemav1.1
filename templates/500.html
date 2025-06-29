@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Erro Interno - Sistema de Crediário</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .error-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .error-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ef4444, #dc2626, #991b1b);
+        }
+
+        .error-icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+            color: #ef4444;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .error-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-code {
+            font-size: 1.2rem;
+            color: #ef4444;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .error-message {
+            color: #6b7280;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .error-technical {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            color: #991b1b;
+            font-size: 0.9rem;
+        }
+
+        .error-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .error-details {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        .error-suggestions {
+            text-align: left;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .error-suggestions h4 {
+            color: #0369a1;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .error-suggestions ul {
+            margin: 0;
+            padding-left: 1.25rem;
+            color: #0369a1;
+            font-size: 0.85rem;
+        }
+
+        .error-suggestions li {
+            margin-bottom: 0.25rem;
+        }
+
+        @media (max-width: 480px) {
+            .error-container {
+                padding: 2rem 1.5rem;
+                margin: 1rem;
+            }
+
+            .error-title {
+                font-size: 2rem;
+            }
+
+            .error-icon {
+                font-size: 4rem;
+            }
+
+            .error-actions {
+                flex-direction: column;
+            }
+        }
+
+        /* Animação */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .error-container {
+            animation: fadeInUp 0.6s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-icon">⚠️</div>
+        <h1 class="error-title">Erro Interno</h1>
+        <div class="error-code">Erro 500</div>
+        <p class="error-message">
+            Ocorreu um erro interno no servidor.<br>
+            Nossos técnicos foram automaticamente notificados.
+        </p>
+
+        <div class="error-technical">
+            <strong>Problema Técnico:</strong> O sistema encontrou uma condição inesperada que impediu o processamento da sua solicitação.
+        </div>
+
+        <div class="error-suggestions">
+            <h4>💡 O que você pode tentar:</h4>
+            <ul>
+                <li>Atualize a página (F5 ou Ctrl+R)</li>
+                <li>Limpe o cache do navegador</li>
+                <li>Tente novamente em alguns minutos</li>
+                <li>Verifique sua conexão com a internet</li>
+                <li>Se o problema persistir, reinicie o sistema</li>
+            </ul>
+        </div>
+        
+        <div class="error-actions">
+            <a href="/" class="btn btn-primary">
+                🏠 Voltar ao Início
+            </a>
+            <button onclick="window.location.reload()" class="btn btn-secondary">
+                🔄 Tentar Novamente
+            </button>
+            <button onclick="history.back()" class="btn btn-danger">
+                ← Página Anterior
+            </button>
+        </div>
+
+        <div class="error-details">
+            <p><strong>Sistema de Crediário - Açougue</strong></p>
+            <p>Timestamp: <span id="timestamp"></span></p>
+            <p>Se o problema persistir, anote este horário e entre em contato com o suporte técnico.</p>
+        </div>
+    </div>
+
+    <script>
+        // Mostrar timestamp do erro
+        document.getElementById('timestamp').textContent = new Date().toLocaleString('pt-BR');
+
+        // Tentar reconectar automaticamente após 10 segundos
+        setTimeout(() => {
+            if (confirm('Deseja tentar recarregar a página automaticamente?')) {
+                window.location.reload();
+            }
+        }, 10000);
+
+        // Log do erro no console para debug
+        console.error('Erro 500 - Erro interno do servidor', {
+            timestamp: new Date().toISOString(),
+            url: window.location.href,
+            userAgent: navigator.userAgent
+        });
+    </script>
+</body>
+</html>

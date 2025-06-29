@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+Script final para configurar o sistema com a configuração que funcionou
+"""
+
+import mysql.connector
+from mysql.connector import Error
+import sys
+import os
+
+def criar_tabelas_completas():
+    """Criar todas as tabelas do sistema"""
+    
+    print("🚀 CONFIGURAÇÃO FINAL DO SISTEMA")
+    print("=" * 50)
+    
+    # Configuração que funcionou no teste
+    config = {
+        'host': 'localhost',
+        'port': 3306,
+        'user': 'root',
+        'password': 'Julio1975',  # SEM SENHA
+        'database': 'acougue_db',
+        'charset': 'utf8mb4',
+        'autocommit': True
+    }
+    
+    try:
+        print("Conectando ao MySQL...")
+        connection = mysql.connector.connect(**config)
+        cursor = connection.cursor()
+        
+        print("✅ Conectado com sucesso!")
+        
+        # Criar todas as tabelas
+        tabelas = {
+            'clientes': '''
+                CREATE TABLE IF NOT EXISTS clientes (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    nome VARCHAR(255) NOT NULL,
+                    cpf VARCHAR(14) UNIQUE,
+                    telefone VARCHAR(20),
+                    endereco TEXT,
+                    limite_credito DECIMAL(10,2) DEFAULT 500.00,
+                    observacoes TEXT,
+                    ativo BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    INDEX idx_nome (nome),
+                    INDEX idx_cpf (cpf),
+                    INDEX idx_ativo (ativo)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ''',
+            
+            'vendas': '''
+                CREATE TABLE IF NOT EXISTS vendas (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    cliente_id INT NOT NULL,
+                    data_venda TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    valor_total DECIMAL(10,2) NOT NULL,
+                    valor_pago DECIMAL(10,2) DEFAULT 0.00,
+                    valor_restante DECIMAL(10,2) GENERATED ALWAYS AS (valor_total - valor_pago) STORED,
+                    status ENUM('aberta', 'paga', 'vencida', 'cancelada') DEFAULT 'aberta',
+                    observacoes TEXT,
+                    venda_origem_ids TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    FOREIGN KEY (cliente_id) REFERENCES clientes(id),
+                    INDEX idx_cliente (cliente_id),
+                    INDEX idx_status (status),
+                    INDEX idx_data_venda (data_venda)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ''',
+            
+            'itens_venda': '''
+                CREATE TABLE IF NOT EXISTS itens_venda (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    venda_id INT NOT NULL,
+                    descricao VARCHAR(255) NOT NULL,
+                    quantidade DECIMAL(8,3) NOT NULL,
+                    valor_unitario DECIMAL(10,2) NOT NULL,
+                    subtotal DECIMAL(10,2) GENERATED ALWAYS AS (quantidade * valor_unitario) STORED,
+                    FOREIGN KEY (venda_id) REFERENCES vendas(id) ON DELETE CASCADE,
+                    INDEX idx_venda (venda_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ''',
+            
+            'pagamentos': '''
+                CREATE TABLE IF NOT EXISTS pagamentos (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    venda_id INT NOT NULL,
+                    valor_pago DECIMAL(10,2) NOT NULL,
+                    forma_pagamento ENUM('dinheiro', 'cartao', 'pix') NOT NULL,
+                    data_pagamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    observacoes TEXT,
+                    comprovante_impresso BOOLEAN DEFAULT FALSE,
+                    FOREIGN KEY (venda_id) REFERENCES vendas(id),
+                    INDEX idx_venda (venda_id),
+                    INDEX idx_data_pagamento (data_pagamento)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ''',
+            
+            'configuracoes': '''
+                CREATE TABLE IF NOT EXISTS configuracoes (
+                    chave VARCHAR(100) PRIMARY KEY,
+                    valor TEXT NOT NULL,
+                    descricao VARCHAR(255),
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ''',
+            
+            'logs_sistema': '''
+                CREATE TABLE IF NOT EXISTS logs_sistema (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    acao VARCHAR(100) NOT NULL,
+                    detalhes TEXT,
+                    usuario VARCHAR(100) DEFAULT 'sistema',
+                    ip VARCHAR(45),
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_acao (acao),
+                    INDEX idx_timestamp (timestamp)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            '''
+        }
+        
+        print(f"Criando {len(tabelas)} tabelas...")
+        
+        for nome_tabela, sql_create in tabelas.items():
+            cursor.execute(sql_create)
+            print(f"✅ Tabela '{nome_tabela}' criada/verificada")
+        
+        # Inserir configurações iniciais
+        configuracoes = [
+            ('limite_inadimplencia_dias', '30', 'Dias para considerar venda vencida'),
+            ('limite_credito_default', '500.00', 'Limite de crédito padrão'),
+            ('nome_empresa', 'Casa de Carnes São José', 'Nome da empresa'),
+            ('endereco_empresa', 'Rua Governador Valadares, Centro', 'Endereço da empresa'),
+            ('telefone_empresa', '(31)3861-1575', 'Telefone da empresa'),
+            ('cnpj_empresa', '24356000101', 'CNPJ da empresa')
+        ]
+        
+        print("Inserindo configurações iniciais...")
+        
+        for chave, valor, descricao in configuracoes:
+            cursor.execute('''
+                INSERT IGNORE INTO configuracoes (chave, valor, descricao) 
+                VALUES (%s, %s, %s)
+            ''', (chave, valor, descricao))
+            print(f"✅ Configuração '{chave}' inserida")
+        
+        # Log de instalação
+        cursor.execute('''
+            INSERT INTO logs_sistema (acao, detalhes, usuario) 
+            VALUES (%s, %s, %s)
+        ''', ('SISTEMA_CONFIGURADO', 'Sistema configurado com sucesso', 'instalador'))
+        
+        # Verificar instalação
+        cursor.execute("SHOW TABLES")
+        tabelas_criadas = cursor.fetchall()
+        
+        print(f"\n✅ INSTALAÇÃO CONCLUÍDA!")
+        print(f"📊 Tabelas criadas: {len(tabelas_criadas)}")
+        
+        for tabela in tabelas_criadas:
+            print(f"   • {tabela[0]}")
+        
+        cursor.close()
+        connection.close()
+        
+        print(f"\n🎉 SISTEMA PRONTO PARA USO!")
+        print(f"Execute: python app.py")
+        
+        return True
+        
+    except Error as e:
+        print(f"❌ Erro MySQL: {e}")
+        return False
+    except Exception as e:
+        print(f"❌ Erro inesperado: {e}")
+        return False
+
+def criar_diretorios():
+    """Criar diretórios necessários"""
+    diretorios = [
+        'templates',
+        'static/css',
+        'static/js',
+        'static/img',
+        'logs',
+        'backups',
+        'exports',
+        'uploads'
+    ]
+    
+    print("Criando diretórios necessários...")
+    for diretorio in diretorios:
+        os.makedirs(diretorio, exist_ok=True)
+        print(f"✅ Diretório '{diretorio}' criado")
+
+def main():
+    """Função principal"""
+    print("🔧 CONFIGURAÇÃO FINAL DO SISTEMA DE CREDIÁRIO")
+    print("=" * 60)
+    
+    # Criar diretórios
+    criar_diretorios()
+    
+    # Configurar banco
+    if criar_tabelas_completas():
+        print("\n" + "="*60)
+        print("🎉 CONFIGURAÇÃO CONCLUÍDA COM SUCESSO!")
+        print("="*60)
+        print("✅ Banco de dados configurado")
+        print("✅ Todas as tabelas criadas")
+        print("✅ Dados iniciais inseridos")
+        print("✅ Diretórios criados")
+        
+        print(f"\n📋 CONFIGURAÇÃO USADA (sem senha):")
+        print(f"   Host: localhost:3306")
+        print(f"   Usuário: root")
+        print(f"   Senha: (vazia)")
+        print(f"   Banco: acougue_db")
+        
+        print(f"\n🚀 PRÓXIMOS PASSOS:")
+        print(f"1. Substitua seu config.py pela versão sem senha")
+        print(f"2. Adicione os templates 404.html e 500.html")
+        print(f"3. Execute: python app.py")
+        print(f"4. Acesse: http://localhost:5000")
+        print(f"5. Senha do sistema: 1234")
+        
+        return True
+    else:
+        print("\n❌ Configuração falhou!")
+        return False
+
+if __name__ == "__main__":
+    try:
+        sucesso = main()
+        
+        if not sucesso:
+            print("\n💡 DICA: Se der erro, execute primeiro:")
+            print("   python my_rodando.py")
+            print("   E use a configuração que funcionou")
+        
+        input("\nPressione Enter para finalizar...")
+        
+    except KeyboardInterrupt:
+        print("\n\n❌ Configuração cancelada")
+    except Exception as e:
+        print(f"\n❌ Erro: {e}")

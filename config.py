@@ -1,5 +1,4 @@
-
-# Configurações atualizadas pela instalação
+# Configurações corrigidas
 import os
 from datetime import timedelta
 
@@ -8,9 +7,10 @@ class Config:
     DEBUG = True
     
     DATABASE_CONFIG = {
-        'host': '5000',
+        'host': 'localhost',  # CORRIGIDO: era '5000', agora é 'localhost'
+        'port': 3306,         # ADICIONADO: porta padrão do MySQL
         'user': 'root',
-        'password': 'Julio1975$',
+        'password': 'Julio1975',
         'database': 'acougue_db',
         'charset': 'utf8mb4',
         'autocommit': True
